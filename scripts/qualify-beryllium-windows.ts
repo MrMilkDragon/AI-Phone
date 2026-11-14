@@ -411,7 +411,9 @@ try {
       signal: AbortSignal.timeout(15000)});
     equal(copy.status, 200);
     equal(fromBinary(FileManageResultSchema, new Uint8Array(await copy.arrayBuffer())).results[0]?.error, "", "wrote prior Linux overlay file through workbench");
-    android("shell", `printf %s '${expectedName}' > /sdcard/Download/${expectedName}`);
+    const phonePath = `/sdcard/Download/${expectedName}`;
+    android("shell", `printf %s '${expectedName}' > ${phonePath} && sync`);
+    equal(android("shell", "cat", phonePath).toString(), expectedName, "prior virtual phone persisted exact content before updating");
     const updatePattern = "AImanity-0.0.2-windows-x64-setup.exe";
     const updateFolder = process.env.AIMANITY_QA_UPDATE_CACHE!;
     mkdirSync(updateFolder, {recursive: true});
@@ -452,7 +454,7 @@ try {
     }
     await checkRetained("", "/");
     await checkRetained(desktop.id, guestFolder);
-    equal(android("shell", "cat", `/sdcard/Download/${expectedName}`).toString(), expectedName, "prior virtual phone retained exact content");
+    equal(android("shell", "cat", phonePath).toString(), expectedName, "prior virtual phone retained exact content");
     console.log(JSON.stringify({upgrade: "0.0.1 → 0.0.2; prior overlay data preserved", release: release.release_sha256,
       workspace: true, linux: true, android: true, ms: Math.round(performance.now() - updateStart)}));
   }
