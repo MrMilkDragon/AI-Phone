@@ -275,11 +275,7 @@ fn creation_state(home: &Path) -> Result<Creation> {
 }
 fn layout(installation: &Path, engine: Engine, control: &Control<'_>) -> Result<PathBuf> {
     let base = installation.join("user/data/android");
-    let home = base.join(match engine {
-        Engine::Goldfish => "avd",
-        Engine::Avo => "avo-avd",
-        Engine::Whpx => "whpx-avd",
-    });
+    let home = base.join(engine.avd_directory());
     for path in [
         installation.join("user"),
         installation.join("user/data"),

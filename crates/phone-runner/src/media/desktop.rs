@@ -30,6 +30,8 @@ async fn screen(media: &Media) -> Result<()> {
     let mut input = child.stdin.take().unwrap();
     let mut output = child.stdout.take().unwrap();
     let mut heartbeat = tokio::time::interval(Duration::from_secs(1));
+    let next_frame = tokio::time::sleep(Duration::from_secs(3));
+    tokio::pin!(next_frame);
     let mut buffer = Vec::new();
     let mut chunk = [0; 65536];
     let ended = 'capture: loop {
@@ -39,6 +41,7 @@ async fn screen(media: &Media) -> Result<()> {
         tokio::select! {
             _=heartbeat.tick()=>input.write_all(b"1").await?,
             _=media.desktop.changed.notified()=>{},
+            _=&mut next_frame=>return Err("desktop screen stopped producing frames".into()),
             bytes=output.read(&mut chunk)=>{
                 let bytes=bytes?;if bytes==0{break 'capture true;}
                 buffer.extend_from_slice(&chunk[..bytes]);
@@ -47,12 +50,18 @@ async fn screen(media: &Media) -> Result<()> {
                     if begin>0{buffer.drain(..begin);}
                     let Some(end)=buffer[2..].windows(2).position(|v|v==[255,217]).map(|v|v+4)else{break;};
                     let jpeg=buffer.drain(..end).collect();media.desktop.publish(jpeg,now());
+                    next_frame.as_mut().reset(tokio::time::Instant::now() + Duration::from_secs(3));
                 }
             }
         }
     };
     drop(input);
-    child.wait().await?;
+    if tokio::time::timeout(Duration::from_secs(1), child.wait())
+        .await
+        .is_err()
+    {
+        child.kill().await?;
+    }
     if ended {
         return Err("desktop screen ended".into());
     }

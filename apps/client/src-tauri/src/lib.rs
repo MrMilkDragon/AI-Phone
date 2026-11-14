@@ -15,6 +15,17 @@ static WORKBENCH_URL: LazyLock<Url> = LazyLock::new(|| {
 #[derive(Default)]
 struct Startup(Mutex<StartupProgress>);
 
+#[derive(Default)]
+struct Exit(Mutex<ExitPhase>);
+
+#[derive(Default)]
+enum ExitPhase {
+    #[default]
+    Open,
+    Stopping,
+    Ready,
+}
+
 #[derive(Clone, Default, Serialize)]
 struct StartupProgress {
     phase: &'static str,
@@ -224,13 +235,20 @@ fn require_workbench_window(window: &tauri::WebviewWindow) -> Result<(), String>
     }
 }
 
+fn require_update_window(window: &tauri::WebviewWindow) -> Result<(), String> {
+    match window.label() {
+        "setup" => require_setup_window(window),
+        _ => require_workbench_window(window),
+    }
+}
+
 #[tauri::command]
 async fn check_client_update(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
 ) -> Result<Option<updates::UpdateDetails>, String> {
-    require_workbench_window(&window)?;
-    updates::refresh(&app)
+    require_update_window(&window)?;
+    updates::refresh(&app, false)
         .await
         .map_err(|error| error.to_string())
 }
@@ -241,7 +259,7 @@ async fn install_client_update(
     window: tauri::WebviewWindow,
     version: String,
 ) -> Result<(), String> {
-    require_workbench_window(&window)?;
+    require_update_window(&window)?;
     let version = semver::Version::parse(&version).map_err(|error| error.to_string())?;
     updates::apply(&app, Some(version))
         .await
@@ -255,7 +273,7 @@ fn deployment_status(
 ) -> Result<DeploymentStatus, String> {
     require_setup_window(&window)?;
     let startup = app.state::<Startup>().progress();
-    let deployment = if startup.phase.is_empty() {
+    let deployment = if matches!(startup.phase, "" | "repairing") {
         Some(bootstrap::snapshot(&app)?)
     } else {
         None
@@ -317,7 +335,7 @@ async fn open_workbench(
 
 async fn validate_or_repair(app: &tauri::AppHandle) -> Result<(), String> {
     #[cfg(target_os = "macos")]
-    if !bootstrap::upgrade_needed(app)? {
+    if bootstrap::same_release(app)? {
         let client = workbench_client().map_err(|_| "workbench_unavailable")?;
         let (workbench, services) = tokio::join!(
             probe_workbench_with(&client, workbench_url(None)),
@@ -418,6 +436,7 @@ pub fn run() {
     }
     let builder = tauri::Builder::default()
         .manage(Startup::default())
+        .manage(Exit::default())
         .manage(bootstrap::Bootstrap::default())
         .manage(copilot::Voice::default())
         .invoke_handler(tauri::generate_handler![
@@ -472,6 +491,7 @@ pub fn run() {
                 app.set_menu(Menu::with_items(app, &[&app_menu, &edit])?)?;
             }
             let handle = app.handle();
+            updates::check_on_launch(handle);
             match bootstrap::installed(handle) {
                 Ok(true) => start_startup(handle)?,
                 Ok(false) => show_setup(handle)?,
@@ -493,15 +513,30 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("Unable to launch AImanity client")
         .run(|app, event| {
-            if let tauri::RunEvent::ExitRequested { api, .. } = event
-                && bootstrap::is_running(app)
-            {
+            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
+                let state = app.state::<Exit>();
+                let mut phase = state.0.lock().unwrap();
+                match *phase {
+                    ExitPhase::Ready => return,
+                    ExitPhase::Stopping => {
+                        api.prevent_exit();
+                        return;
+                    }
+                    ExitPhase::Open => *phase = ExitPhase::Stopping,
+                }
                 api.prevent_exit();
-                bootstrap::cancel(app);
                 let app = app.clone();
-                std::thread::spawn(move || {
-                    bootstrap::wait_until_idle(&app);
-                    app.exit(0);
+                tauri::async_runtime::spawn(async move {
+                    let result = bootstrap::shutdown(&app).await;
+                    if let Err(error) = &result {
+                        eprintln!("shutdown: {error}");
+                    }
+                    *app.state::<Exit>().0.lock().unwrap() = ExitPhase::Ready;
+                    app.exit(if result.is_ok() {
+                        code.unwrap_or_default()
+                    } else {
+                        1
+                    });
                 });
             }
         });

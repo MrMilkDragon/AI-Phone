@@ -373,6 +373,11 @@ async fn cancelled(test: &dyn Fn() -> bool) {
 }
 
 pub async fn stop_installed(home: &Path) -> Result<()> {
+    if !home.try_exists()? {
+        return Ok(());
+    }
+    let home = home.canonicalize()?;
+    let flush = crate::android::session::flush_attached(&home).await;
     let qemu = home.join("user/qemu");
     if qemu.try_exists()? {
         stop_running(&qemu, vm_control::GUEST_PORT).await?;
@@ -381,7 +386,7 @@ pub async fn stop_installed(home: &Path) -> Result<()> {
     if android.try_exists()? {
         wait_for_stop(&android).await?;
     }
-    Ok(())
+    flush
 }
 
 async fn stop_running(home: &Path, port: u16) -> Result<()> {

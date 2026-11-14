@@ -44,6 +44,14 @@ pub enum Engine {
 }
 
 impl Engine {
+    fn avd_directory(self) -> &'static str {
+        match self {
+            Self::Goldfish => "avd",
+            Self::Avo => "avo-avd",
+            Self::Whpx => "whpx-avd",
+        }
+    }
+
     pub fn installed(sdk: &Path) -> Self {
         if sdk.join("avo/avo-vmm").is_file() {
             Self::Avo
@@ -148,6 +156,39 @@ impl Installation {
                 cancelled,
             },
         )
+    }
+
+    pub fn resume_android(&self, identity: &str) -> Result<Option<Prepared>> {
+        use crate::filesystem;
+        let platform = manifest::Platform::current()?;
+        if !crate::manifest::identity(identity) {
+            return Err(Error::Invalid("android_resource_manifest"));
+        }
+        let root = self.home.join("components/android").join(identity);
+        if !root.try_exists()? {
+            return Ok(None);
+        }
+        filesystem::checked_parents(&self.home, &root)?;
+        let raw = filesystem::bounded_file_with_limit(
+            &root.join(manifest::NAME),
+            manifest::LIMITS.metadata,
+        )?;
+        let value = manifest::parse(&raw, platform)?;
+        for record in &value.files {
+            filesystem::open_record(&root, record)?;
+        }
+        let sdk_root = root.join("sdk");
+        let avd_home = self
+            .home
+            .join("user/data/android")
+            .join(Engine::installed(&sdk_root).avd_directory());
+        device::verify_existing(&avd_home, &sdk_root, platform.spec().abi)?;
+        Ok(Some(Prepared {
+            sdk_root,
+            avd_home,
+            reused_sdk: true,
+            reused_device: true,
+        }))
     }
 
     fn prepare_android_for(

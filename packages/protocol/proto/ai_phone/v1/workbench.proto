@@ -11,6 +11,8 @@ message KnowledgeDocument { string id = 1; string title = 2; string content = 3;
 message KnowledgeList { repeated KnowledgeDocument documents = 1; }
 message KnowledgeSaveRequest { string id = 1; string title = 2; string content = 3; uint64 expected_revision = 4; repeated string related_ids = 5; }
 message KnowledgeDeleteRequest { string id = 1; uint64 expected_revision = 2; }
+message KnowledgeImageUploadRequest { bytes image = 1; }
+message KnowledgeImage { string id = 1; }
 message ModelCallTiming {
   uint64 preparation_ms = 1;
   optional uint64 headers_ms = 2;

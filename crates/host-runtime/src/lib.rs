@@ -35,6 +35,8 @@ mod staging;
 pub mod supervision;
 #[cfg(unix)]
 mod unix_initializer;
+#[cfg(target_os = "macos")]
+pub use unix_initializer::shutdown as stop_macos_installation;
 pub mod vm_control;
 pub mod wsl;
 
@@ -141,6 +143,22 @@ impl Installation {
             cancelled,
         };
         staging::stage(payload, &self.home, expected_sha256, &control, true)
+    }
+
+    #[cfg(unix)]
+    pub(crate) fn resume_source(
+        &self,
+        identity: &str,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<Option<StagedSource>> {
+        staging::resume(
+            &self.home,
+            identity,
+            &control::Control {
+                available: &|_| 0,
+                cancelled,
+            },
+        )
     }
 }
 

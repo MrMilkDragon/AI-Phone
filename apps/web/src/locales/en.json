@@ -489,5 +489,11 @@
   "修改时间": "Modified",
   "管理": "Manage",
   "取消": "Cancel",
-  "配置": "Configuration"
+  "配置": "Configuration",
+  "图片": "Image",
+  "图片上传失败": "Image upload failed",
+  "请使用 6 MB 以内的 PNG、JPEG 或 WebP 图片": "Use a PNG, JPEG, or WebP image under 6 MB",
+  "文档已更新，当前草稿已保留": "Document updated. Your draft is preserved.",
+  "放弃草稿": "Discard draft",
+  "知识网络": "Knowledge graph"
 }

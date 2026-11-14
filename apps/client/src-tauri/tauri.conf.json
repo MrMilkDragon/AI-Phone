@@ -23,7 +23,9 @@
             "allow-retry-startup",
             "allow-start-deployment",
             "allow-cancel-deployment",
-            "allow-accept-deployment-license"
+            "allow-accept-deployment-license",
+            "allow-check-client-update",
+            "allow-install-client-update"
           ]
         },
         {

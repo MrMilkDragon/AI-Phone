@@ -471,5 +471,11 @@
   "修改时间": "Modifié",
   "管理": "Gérer",
   "取消": "Annuler",
-  "配置": "Configuration"
+  "配置": "Configuration",
+  "图片": "Image",
+  "图片上传失败": "Échec de l’envoi de l’image",
+  "请使用 6 MB 以内的 PNG、JPEG 或 WebP 图片": "Utilisez une image PNG, JPEG ou WebP de 6 Mo maximum",
+  "文档已更新，当前草稿已保留": "Document mis à jour. Votre brouillon est conservé.",
+  "放弃草稿": "Ignorer le brouillon",
+  "知识网络": "Graphe de connaissances"
 }

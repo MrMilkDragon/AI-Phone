@@ -157,7 +157,7 @@ pub(crate) fn tools() -> Value {
         ),
         function(
             "knowledge_search",
-            "检索用户知识库的标题和正文，支持中文。",
+            "按主题关键词检索知识库。返回精简摘要、文档ID、版本和关联ID。创建前找同主题文档。",
             json!({"query":{"type":"string"}}),
             vec!["query"]
         ),
@@ -169,9 +169,15 @@ pub(crate) fn tools() -> Value {
         ),
         function(
             "knowledge_write",
-            "创建或更新有用的Markdown知识文档。先用knowledge_search检查是否已有同主题文档，更新前读取revision。",
-            json!({"id":{"type":"string"},"title":{"type":"string"},"content":{"type":"string"},"revision":{"type":"integer"}}),
+            "保存Markdown知识文档。更新前用knowledge_read读取同主题文档，传回id和revision，保留仍有用的原文。related_ids省略时保留已有的关联。需要配图时用phone_observe或computer_observe，将本轮真实观察ID填入image_observation_id，图片会自动附到正文。只保留与主题有关且适合存档的画面。",
+            json!({"id":{"type":"string"},"title":{"type":"string"},"content":{"type":"string"},"revision":{"type":"integer"},"related_ids":{"type":"array","items":{"type":"string"},"maxItems":50},"image_observation_id":{"type":"string"},"image_alt":{"type":"string","maxLength":140}}),
             vec!["title", "content"]
+        ),
+        function(
+            "knowledge_link",
+            "关联或解除两篇已有知识文档，双向生效。传实际的id、target_id以及knowledge_read返回的revision；只关联内容确实相关的文档。",
+            json!({"id":{"type":"string"},"target_id":{"type":"string"},"revision":{"type":"integer"},"present":{"type":"boolean"}}),
+            vec!["id", "target_id", "revision", "present"]
         ),
         function(
             "workspace_list",

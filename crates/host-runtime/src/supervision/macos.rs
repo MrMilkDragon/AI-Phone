@@ -94,6 +94,36 @@ pub(crate) async fn activate(root: &Path) -> Result<()> {
     }
     Ok(())
 }
+
+pub(crate) async fn deactivate(home: &Path) -> Result<()> {
+    let releases = home.join("releases");
+    let mut result = Ok(());
+    for (_, label) in SERVICES.into_iter().rev() {
+        let stop = async {
+            let Some((directory, _)) = job(label).await? else {
+                return Ok(());
+            };
+            let root = if directory.ends_with("apps/web") {
+                directory.ancestors().nth(2).unwrap()
+            } else {
+                &directory
+            };
+            if root.parent() == Some(releases.as_path()) {
+                crate::staging::owns_release(root, root)?;
+                bootout(root, label).await?;
+            }
+            Ok(())
+        };
+        let stopped = tokio::time::timeout(std::time::Duration::from_secs(10), stop)
+            .await
+            .map_err(|_| Error::Invalid("service_stop_timeout"))
+            .and_then(|result| result);
+        if result.is_ok() {
+            result = stopped;
+        }
+    }
+    result
+}
 fn xml(value: &str) -> String {
     value
         .replace('&', "&amp;")

@@ -74,6 +74,51 @@ fn repairable(error: &Error) -> bool {
         || matches!(error, Error::Io(io) if io.kind() == std::io::ErrorKind::NotFound)
 }
 
+#[cfg(unix)]
+pub(crate) fn resume(
+    home: &Path,
+    expected: &str,
+    control: &Control<'_>,
+) -> Result<Option<StagedSource>> {
+    let root = home.join("releases").join(expected);
+    let verify = || {
+        filesystem::existing_directory(&root)?;
+        links::persistent(&root, home, false)?;
+        let raw = filesystem::bounded_file(&root.join(manifest::HOST_MANIFEST))?;
+        let value: manifest::Manifest =
+            serde_json::from_slice(&raw).map_err(|_| Error::Invalid("source_resource_changed"))?;
+        let headers = value
+            .files
+            .iter()
+            .map(|row| (row.path.clone(), row.size))
+            .chain([(manifest::HOST_MANIFEST.to_owned(), raw.len() as u64)])
+            .collect();
+        let inventory = Inventory {
+            manifest: value,
+            raw,
+            headers,
+        };
+        manifest::validate(&inventory).map_err(|_| Error::Invalid("source_resource_changed"))?;
+        for row in &inventory.manifest.files {
+            control.check()?;
+            filesystem::open_record(&root, row)?;
+        }
+        links::runtime(&root, &inventory.manifest.components, false)?;
+        Ok(inventory.manifest.components)
+    };
+    match verify() {
+        Ok(components) => Ok(Some(StagedSource {
+            directory: root,
+            data: home.join("user/data"),
+            identity: expected.to_owned(),
+            components,
+            reused: true,
+        })),
+        Err(error) if repairable(&error) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
 fn recover_existing(
     file: &mut File,
     root: &Path,

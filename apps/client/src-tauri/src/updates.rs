@@ -8,7 +8,7 @@ use std::{
     error::Error,
     ffi::OsString,
     path::{Path, PathBuf},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::{
     AppHandle, Manager, Wry,
@@ -29,7 +29,7 @@ pub const ID: &str = "client-updates";
 pub const CHECK: &str = "Check for Updates…";
 const REPOSITORY: &str = "MrMilkDragon/AImanity";
 const UPDATE_FEED: &str =
-    "https://raw.githubusercontent.com/MrMilkDragon/AImanity/update-feed/stable.json";
+    "https://api.github.com/repos/MrMilkDragon/AImanity/contents/stable.json?ref=update-feed";
 const MAX_MANIFEST: usize = 16 * 1024;
 const MAX_INSTALLER: u64 = 2 * 1024 * 1024 * 1024;
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
@@ -67,14 +67,20 @@ pub fn platform() -> Option<Platform> {
 
 pub struct Menu {
     item: MenuItem<Wry>,
-    offered: Mutex<Option<Offer>>,
+    state: Mutex<UpdateState>,
+}
+
+#[derive(Default)]
+struct UpdateState {
+    offer: Option<Offer>,
+    checked: Option<(Instant, Duration)>,
 }
 
 impl Menu {
     pub fn new(item: MenuItem<Wry>) -> Self {
         Self {
             item,
-            offered: Mutex::new(None),
+            state: Mutex::new(UpdateState::default()),
         }
     }
 }
@@ -187,6 +193,7 @@ async fn check(current: &Version, platform: Platform) -> Result<Option<Offer>> {
     let client = client()?;
     let mut response = client
         .get(UPDATE_FEED)
+        .header(reqwest::header::ACCEPT, "application/vnd.github.raw+json")
         .timeout(Duration::from_secs(15))
         .send()
         .await?;
@@ -285,29 +292,47 @@ fn progress(app: &AppHandle, status: ProgressBarStatus, value: Option<u64>) {
     }
 }
 
-pub async fn refresh(app: &AppHandle) -> Result<Option<UpdateDetails>> {
+pub async fn refresh(app: &AppHandle, force: bool) -> Result<Option<UpdateDetails>> {
     let Some(platform) = platform() else {
         return Ok(None);
     };
     let menu = app.state::<Menu>();
-    let mut offered = menu.offered.lock().await;
+    let mut state = menu.state.lock().await;
+    if !force
+        && state
+            .checked
+            .is_some_and(|(at, lifetime)| at.elapsed() < lifetime)
+    {
+        return Ok(state.offer.as_ref().map(UpdateDetails::from));
+    }
     let _ = menu.item.set_enabled(false);
     let _ = menu.item.set_text("Checking for Updates…");
     match check(&app.package_info().version, platform).await {
         Ok(next) => {
-            *offered = next;
-            show_menu(&menu, offered.as_ref(), "Up to Date · Check Again");
-            Ok(offered.as_ref().map(UpdateDetails::from))
+            state.offer = next;
+            state.checked = Some((Instant::now(), Duration::from_secs(30 * 60)));
+            show_menu(&menu, state.offer.as_ref(), "Up to Date · Check Again");
+            Ok(state.offer.as_ref().map(UpdateDetails::from))
         }
         Err(error) => {
+            state.checked = Some((Instant::now(), Duration::from_secs(60)));
             show_menu(
                 &menu,
-                offered.as_ref(),
+                state.offer.as_ref(),
                 "Could Not Check for Updates · Retry",
             );
             Err(error)
         }
     }
+}
+
+pub fn check_on_launch(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(error) = refresh(&app, false).await {
+            eprintln!("Client update: {error}");
+        }
+    });
 }
 
 fn show_menu(menu: &Menu, offer: Option<&Offer>, no_offer_label: &str) {
@@ -322,11 +347,11 @@ fn show_menu(menu: &Menu, offer: Option<&Offer>, no_offer_label: &str) {
 pub async fn apply(app: &AppHandle, requested: Option<Version>) -> Result<()> {
     let platform = platform().ok_or("Updates are unavailable on this platform")?;
     let menu = app.state::<Menu>();
-    let offered = menu
-        .offered
+    let state = menu
+        .state
         .try_lock()
         .map_err(|_| "An update operation is already in progress")?;
-    let offer = offered.as_ref().ok_or("Check for an update first")?;
+    let offer = state.offer.as_ref().ok_or("Check for an update first")?;
     if requested.is_some_and(|version| version != offer.version) {
         return Err("The available update has changed".into());
     }
@@ -354,14 +379,14 @@ pub fn select(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let menu = app.state::<Menu>();
-        let ready = match menu.offered.try_lock() {
-            Ok(offer) => offer.is_some(),
+        let ready = match menu.state.try_lock() {
+            Ok(state) => state.offer.is_some(),
             Err(_) => return,
         };
         let result = if ready {
             apply(&app, None).await
         } else {
-            refresh(&app).await.map(|_| ())
+            refresh(&app, true).await.map(|_| ())
         };
         if let Err(error) = result {
             eprintln!("Client update: {error}");
@@ -373,13 +398,7 @@ pub fn select(app: &AppHandle) {
 }
 
 async fn install(app: &AppHandle, offer: &Offer, platform: Platform) -> Result<()> {
-    if crate::bootstrap::is_running(app) {
-        return Err("Wait for device setup to finish".into());
-    }
     let downloaded = download(app, offer, platform).await?;
-    if crate::bootstrap::is_running(app) {
-        return Err("Wait for device setup to finish".into());
-    }
     progress(app, ProgressBarStatus::Indeterminate, None);
     let _ = app
         .state::<Menu>()

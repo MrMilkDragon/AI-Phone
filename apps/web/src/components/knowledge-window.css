@@ -1,0 +1,127 @@
+.floating-window[data-window-id="knowledge-document"] {
+  --knowledge-gap: 18px;
+}
+
+.knowledge-document {
+  min-inline-size: 0;
+  gap: var(--knowledge-gap);
+}
+
+.knowledge-document-loading {
+  min-block-size: 160px;
+  display: grid;
+  place-items: center;
+}
+
+.knowledge-field {
+  display: grid;
+  gap: 4px;
+  min-inline-size: 0;
+}
+
+.knowledge-field label {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+.knowledge-body-field {
+  flex: 1;
+}
+
+.knowledge-conflict {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+.knowledge-conflict p {
+  margin: 0;
+}
+
+.knowledge-document .markdown-document {
+  font-size: var(--text-body);
+}
+
+.knowledge-document .markdown-document img {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: min(390px, 55dvh);
+  block-size: auto;
+  object-fit: contain;
+  object-position: start;
+  margin-block: 8px;
+}
+
+.knowledge-document .knowledge-content-input {
+  min-block-size: 200px;
+}
+
+.knowledge-document .knowledge-related {
+  margin-block-start: 0;
+  padding-block-start: 8px;
+}
+
+.knowledge-related-links {
+  padding: 0;
+  list-style: none;
+}
+
+.knowledge-related-links > li > button,
+.knowledge-related .knowledge-link-options > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-block-size: 40px;
+  inline-size: 100%;
+  padding-inline: 8px;
+  text-align: start;
+  border-radius: var(--radius);
+  font-size: var(--text-caption);
+}
+
+.knowledge-related :is(.knowledge-related-links, .knowledge-link-options) button:hover {
+  background: var(--secondary);
+}
+
+.knowledge-related button span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-related button svg {
+  flex: none;
+  color: var(--muted-foreground);
+}
+
+.knowledge-related .knowledge-link-picker {
+  margin-block-start: 8px;
+  padding: 6px 0 0;
+  border: 0;
+  border-block-start: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.knowledge-related .knowledge-link-picker > label {
+  padding-inline: 8px;
+}
+
+.knowledge-related .knowledge-link-picker input {
+  min-inline-size: 0;
+  min-block-size: 34px;
+}
+
+@media (pointer: coarse), (max-width: 600px) {
+  .knowledge-related :is(.knowledge-related-links, .knowledge-link-options) button {
+    min-block-size: 44px;
+  }
+
+  .knowledge-document :is(.knowledge-content-input, .knowledge-link-picker input) {
+    font-size: 16px;
+  }
+}

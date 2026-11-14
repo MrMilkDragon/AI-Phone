@@ -62,24 +62,37 @@ fn learning_candidate(candidate: &Value, evidence: &LearningEvidence) -> Result<
     Ok(value)
 }
 
-fn knowledge_schema(evidence: &LearningEvidence) -> Option<Value> {
+fn knowledge_schema(evidence: &LearningEvidence, illustrated: &[String]) -> Option<Value> {
     let app = &evidence.values().next()?.app_id;
     if !evidence.values().any(|item| &item.app_id != app) {
         return None;
     }
-    Some(json!({"type":"object","additionalProperties":false,
+    let mut schema = json!({"type":"object","additionalProperties":false,
         "description":"可复用的跨应用知识，不记录单个应用的操作步骤。仅在当前真实证据足以支持结论时提供。",
         "properties":{
             "title":{"type":"string","maxLength":100},
             "summary":{"type":"string","maxLength":1200,"description":"结论和适用条件；不含私密内容。"},
             "evidence_ids":{"type":"array","minItems":2,"maxItems":8,"items":{"type":"string","enum":evidence.keys().collect::<Vec<_>>()}}
-        },"required":["title","summary","evidence_ids"]}))
+        },"required":["title","summary","evidence_ids"]});
+    if !illustrated.is_empty() {
+        schema["properties"]["image_evidence_id"] = json!({"type":"string","enum":illustrated,
+            "description":"可选：同一结论所用的证据中，适合长期保留的真实截图。排除聊天、通知、账密和私人文件。"});
+    }
+    Some(schema)
+}
+
+struct KnowledgeCandidate<'a> {
+    title: &'a str,
+    summary: &'a str,
+    observations: Vec<String>,
+    image: Option<&'a str>,
 }
 
 fn knowledge_candidate<'a>(
     candidate: &'a Value,
-    evidence: &LearningEvidence,
-) -> Option<(&'a str, &'a str, Vec<String>)> {
+    evidence: &'a LearningEvidence,
+    illustrated: &[String],
+) -> Option<KnowledgeCandidate<'a>> {
     let title = candidate["title"].as_str()?.trim();
     let summary = candidate["summary"].as_str()?.trim();
     let ids = candidate["evidence_ids"].as_array()?;
@@ -98,8 +111,20 @@ fn knowledge_candidate<'a>(
         apps.insert(&item.app_id);
         observations.insert(item.observation_id.clone());
     }
-    (apps.len() >= 2 && observations.len() == ids.len())
-        .then(|| (title, summary, observations.into_iter().collect()))
+    let image = candidate["image_evidence_id"]
+        .as_str()
+        .filter(|id| {
+            illustrated.iter().any(|known| known == id)
+                && ids.iter().any(|value| value.as_str() == Some(*id))
+        })
+        .and_then(|id| evidence.get(id))
+        .map(|frame| frame.observation_id.as_str());
+    (apps.len() >= 2 && observations.len() == ids.len()).then(|| KnowledgeCandidate {
+        title,
+        summary,
+        observations: observations.into_iter().collect(),
+        image,
+    })
 }
 
 fn single_desktop_input(evidence: &[Value]) -> bool {
@@ -266,6 +291,7 @@ pub async fn verify(
     let mut post_visuals = None;
     let mut evidence = Vec::new();
     let mut learning_evidence = LearningEvidence::new();
+    let mut illustrated = Vec::new();
     for row in &rows {
         let row_id = row.get::<Uuid, _>("id");
         let id = row_id.to_string();
@@ -286,6 +312,9 @@ pub async fn verify(
         limit_result(&mut result, &mut image_budget);
         let first_visual = visual_inputs.len();
         extract_images(&mut result, &id, &mut visual_inputs);
+        if first_visual < visual_inputs.len() && learning_evidence.contains_key(&id) {
+            illustrated.push(id.clone());
+        }
         if name == "computer_type" && first_visual < visual_inputs.len() {
             input_visuals = Some(first_visual..visual_inputs.len());
         }
@@ -369,7 +398,7 @@ pub async fn verify(
     if !compact && let Some(schema) = learning_schema(&learning_evidence) {
         tool["parameters"]["properties"]["experience"] = schema;
     }
-    if !compact && let Some(schema) = knowledge_schema(&learning_evidence) {
+    if !compact && let Some(schema) = knowledge_schema(&learning_evidence, &illustrated) {
         tool["parameters"]["properties"]["knowledge"] = schema;
         audit_input.push(json!({"type":"input_text","text":"若已核验的跨应用操作得出一条可供后续任务引用的事实或通用结论，可附一份knowledge。引用至少两个不同应用的本轮evidence_id，包含动作后的复查。只保存结论和适用条件，不重复单应用Skill，不保存私密通知、会话、凭据、路径或原文。没有可复用结论就省略。已有结论用相同标题，不另起同义标题。"}));
     }
@@ -449,17 +478,18 @@ pub async fn verify(
         && !needs_input
         && let Ok(report) = &result
         && report.approved
-        && let Some((title, summary, observations)) = report
+        && let Some(note) = report
             .knowledge
             .as_ref()
-            .and_then(|candidate| knowledge_candidate(candidate, &learning_evidence))
+            .and_then(|candidate| knowledge_candidate(candidate, &learning_evidence, &illustrated))
         && let Err(error) = crate::workbench::publish_learned_knowledge(
             app,
             run,
             event,
-            title,
-            summary,
-            &observations,
+            note.title,
+            note.summary,
+            &note.observations,
+            note.image,
         )
         .await
     {
@@ -838,7 +868,13 @@ mod tests {
                 } else {
                     "com.example.reader"
                 };
-                let output = json!([{"type":"input_text","text":json!({"success":true,"device_id":"phone-local-01","observation_id":format!("frame-{i}"),"foreground_app":package}).to_string()}]);
+                let mut output = json!([{"type":"input_text","text":json!({"success":true,"device_id":"phone-local-01","observation_id":format!("frame-{i}"),"foreground_app":package}).to_string()}]);
+                if i == 2 {
+                    let png = include_bytes!("../fixtures/vision-probe.png");
+                    let encoded =
+                        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, png);
+                    output.as_array_mut().unwrap().push(json!({"type":"input_image","image_url":format!("data:image/png;base64,{encoded}")}));
+                }
                 sqlx::query("INSERT INTO harness_events(id,run_id,message_id,kind,title,status,result) VALUES($1,$2,$3,'tool','fixture','completed',$4)").bind(id).bind(run).bind(message).bind(&output).execute(&app.db).await.unwrap();
                 context.push(json!({"type":"function_call","name":tool,"local_action_id":id.to_string(),"arguments":"{}"}));
                 if crate::app_learning::observation_tool(tool) {
@@ -917,6 +953,7 @@ mod tests {
                     "title":"Check import results in both applications",
                     "summary":"Verify the actual result in the receiving application instead of assuming a handoff is complete.",
                     "evidence_ids":note_references,
+                    "image_evidence_id":ids[2],
                 }});
                 assert_eq!(
                     verify(
@@ -964,6 +1001,80 @@ mod tests {
                 .unwrap();
                 assert_eq!(knowledge.as_array().unwrap().len(), notes as usize);
             }
+            let (id, initial): (Uuid, i64) =
+                sqlx::query_as("SELECT id,revision FROM knowledge_documents WHERE learned_key=$1")
+                    .bind("check import results in both applications")
+                    .fetch_one(&app.db)
+                    .await
+                    .unwrap();
+            let image: Vec<u8> = sqlx::query_scalar("SELECT image FROM knowledge_images")
+                .fetch_one(&app.db)
+                .await
+                .unwrap();
+            assert_eq!(image, include_bytes!("../fixtures/vision-probe.png"));
+            let observations = [String::from("frame-0"), String::from("frame-2")];
+            assert!(
+                crate::workbench::publish_learned_knowledge(
+                    &app,
+                    other_run,
+                    Uuid::now_v7(),
+                    "Check import results in both applications",
+                    "A different run cannot attach this screenshot.",
+                    &observations,
+                    Some("frame-2"),
+                )
+                .await
+                .is_err()
+            );
+            crate::workbench::publish_learned_knowledge(
+                &app,
+                run,
+                Uuid::now_v7(),
+                "Check import results in both applications",
+                "Reopen the result in the receiving application to verify its format.",
+                &observations,
+                None,
+            )
+            .await
+            .unwrap();
+            let (content, revision): (String, i64) =
+                sqlx::query_as("SELECT content,revision FROM knowledge_documents WHERE id=$1")
+                    .bind(id)
+                    .fetch_one(&app.db)
+                    .await
+                    .unwrap();
+            assert!(content.contains("](/api/workbench/knowledge-image/"));
+            assert!(content.contains("Reopen the result"));
+            assert_eq!(revision, initial + 1);
+            let related = crate::workbench::invoke_tool(
+                &app,
+                "knowledge_write",
+                &json!({"title":"Inspect the receiving application","content":"Use the application UI to reopen the result.","related_ids":[id]}),
+                &CancellationToken::new(),
+                Some(run),
+            )
+            .await
+            .unwrap();
+            let linked = crate::workbench::invoke(
+                &app,
+                "knowledge_read",
+                &json!({"id":id}),
+                &CancellationToken::new(),
+            )
+            .await
+            .unwrap();
+            assert_eq!(linked["related_ids"], json!([related["id"]]));
+            let revised = crate::workbench::invoke_tool(
+                &app,
+                "knowledge_write",
+                &json!({"id":related["id"],"revision":related["revision"],"title":"Inspect the receiving application","content":"Read the final result in the UI.","image_observation_id":"frame-2","image_alt":"Observed import"}),
+                &CancellationToken::new(),
+                Some(run),
+            )
+            .await
+            .unwrap();
+            assert_eq!(revised["id"], related["id"]);
+            assert_eq!(revised["related_ids"], json!([id]));
             crate::app_learning::promote(&app, run).await.unwrap();
             let name = crate::app_learning::recall(&app, "com.example.reader")
                 .await
