@@ -62,6 +62,18 @@
         </div>
         <ol id="install-activity" role="list" class="install-activity" dir="ltr" hidden></ol>
       </div>
+      <details id="startup-update" class="startup-update" hidden>
+          <summary>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"/></svg>
+            <span id="startup-update-label"></span>
+          </summary>
+          <div class="startup-update-panel">
+            <strong id="startup-update-release" dir="auto"></strong>
+            <p id="startup-update-notes" dir="auto"></p>
+            <p id="startup-update-error" class="error" role="alert" hidden></p>
+            <button type="button" id="startup-update-install" class="primary"></button>
+          </div>
+      </details>
       <footer class="setup-footer progress-actions">
         <button id="cancel" class="secondary" type="button" data-i18n="cancel">Stop</button>
         <button id="retry" class="primary" type="button" data-i18n="retry" hidden>Retry</button>

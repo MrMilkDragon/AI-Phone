@@ -24,3 +24,16 @@ const rows = {
 export const setupLabels = Object.fromEntries(Object.entries(rows).map(([locale, values]) =>
   [locale, Object.fromEntries(keys.map((key, index) => [key, values[index]]))],
 ));
+
+export const updateLabels = {
+  "zh-CN": ["系统更新", "确认更新", "正在更新…", "更新中断，请重试"],
+  "en": ["System update", "Confirm update", "Updating…", "Update interrupted. Try again."],
+  "zh-TW": ["系統更新", "確認更新", "正在更新…", "更新中斷，請重試"],
+  "ja": ["システムアップデート", "アップデートを確認", "更新中…", "更新が中断されました。再試行してください。"],
+  "ko": ["시스템 업데이트", "업데이트 확인", "업데이트 중…", "업데이트가 중단되었습니다. 다시 시도하세요."],
+  "de": ["Systemupdate", "Update bestätigen", "Update läuft…", "Update unterbrochen. Erneut versuchen."],
+  "fr": ["Mise à jour du système", "Confirmer la mise à jour", "Mise à jour en cours…", "Mise à jour interrompue. Réessayez."],
+  "es": ["Actualización del sistema", "Confirmar actualización", "Actualizando…", "La actualización se interrumpió. Reintenta."],
+  "ru": ["Обновление системы", "Подтвердить обновление", "Обновление…", "Обновление прервано. Повторите попытку."],
+  "ar": ["تحديث النظام", "تأكيد التحديث", "جارٍ التحديث…", "انقطع التحديث. أعد المحاولة."],
+};

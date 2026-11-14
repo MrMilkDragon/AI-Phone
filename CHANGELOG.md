@@ -5,7 +5,9 @@
 - Show live installation commands and prepare the local runtime in one extraction pass.
 - Open the Agent form next to its add button.
 - Simplify fresh Android home screens and manage proxy subscriptions from the workbench.
-
+- Check for signed updates during startup and show the version and release notes in the top right.
+- Resume the prepared local environment on reopen and stop the app's devices and services on quit.
+- Add inline images and bidirectional links to the knowledge base. The Agent can attach verified device screenshots and update existing documents.
 
 ## 0.0.1 Aluminum
 

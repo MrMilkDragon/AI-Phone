@@ -145,14 +145,19 @@ fn correct_mode(metadata: &Metadata, expected: u32) -> bool {
     }
 }
 
-pub(crate) fn verify_record(root: &Path, row: &Record, control: &Control<'_>) -> Result<()> {
+pub(crate) fn open_record(root: &Path, row: &Record) -> Result<File> {
     let path = root.join(&row.path);
     checked_parents(root, &path)?;
-    let mut input = regular(&path)?;
+    let input = regular(&path)?;
     let metadata = input.metadata()?;
     if metadata.len() != row.size || !correct_mode(&metadata, row.mode) {
         return Err(Error::Invalid("source_resource_changed"));
     }
+    Ok(input)
+}
+
+pub(crate) fn verify_record(root: &Path, row: &Record, control: &Control<'_>) -> Result<()> {
+    let mut input = open_record(root, row)?;
     if crate::capsule::hash(&mut input, control)? != row.sha256 {
         return Err(Error::Invalid("source_resource_changed"));
     }

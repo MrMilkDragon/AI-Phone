@@ -34,6 +34,11 @@ const REQUIREMENTS: &[Requirement] = &[
         tools: &["knowledge_write"],
     },
     Requirement {
+        targets: &["知识库"],
+        verbs: &["关联", "链接", "解除关联"],
+        tools: &["knowledge_link", "knowledge_write"],
+    },
+    Requirement {
         targets: &[
             "文件", "脚本", "报告", "文档", "工作", "python", "node", "bun", "代码", "网页",
             "资源", "pdf", "docx", "表格",

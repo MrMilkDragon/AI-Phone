@@ -89,7 +89,24 @@
 [data-state=ready] .progress-complete { opacity: 1; scale: 1; }
 #progress[data-startup=true] { grid-template-rows: minmax(0, 1fr) auto; }
 #progress[data-startup=true] > h1 { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+#progress[data-startup=true] { position: relative; }
 #progress[data-startup=true] .progress-actions:not(:has(button:not([hidden]))) { display: none; }
+.startup-update { position: absolute; inset-block-start: 0; inset-inline-end: 0; }
+.startup-update summary {
+  display: flex; align-items: center; gap: 8px; min-block-size: var(--setup-control);
+  padding-inline: 10px; border-radius: var(--setup-radius); cursor: pointer; font-weight: 650;
+}
+.startup-update summary::-webkit-details-marker { display: none; }
+.startup-update summary:is(:hover,:focus-visible) { background: var(--glass-fill); }
+.startup-update-panel {
+  position: absolute; inset-inline-end: 0; inset-block-start: 100%; z-index: 1;
+  inline-size: min(310px, calc(100dvw - 2 * var(--setup-inset)));
+  display: grid; gap: 10px; max-block-size: 48dvh; overflow-y: auto;
+  padding: 13px; border: 1px solid var(--setup-line); border-radius: var(--setup-radius);
+  background: var(--glass-fill); backdrop-filter: blur(24px);
+  box-shadow: 0 10px 32px rgb(0 0 0 / .12);
+}
+.startup-update-panel p { white-space: pre-wrap; overflow-wrap: anywhere; }
 #license { justify-self: stretch; text-align: start; }
 .install-activity {
   display: grid;

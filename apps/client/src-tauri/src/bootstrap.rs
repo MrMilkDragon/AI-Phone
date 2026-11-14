@@ -170,6 +170,7 @@ fn capability_from_resources(
 pub struct ManagerState {
     running: AtomicBool,
     cancelled: AtomicBool,
+    closing: Mutex<bool>,
     progress: Mutex<Progress>,
     activity: Mutex<VecDeque<Activity>>,
     input: Mutex<Option<ChildStdin>>,
@@ -471,19 +472,29 @@ fn start_windows_backend(
         return Err("windows_backend_migration_required".into());
     }
     manager.set(folder, "android", "running", "")?;
-    let phone = installation
-        .prepare_android(
-            &resource.join("android.payload"),
-            android,
-            ai_phone_host_runtime::android::Resources {
-                cpus: request.phone.cpus.into(),
-                memory_mb: request.phone.memory_mb,
-                storage_gb: request.phone.storage_gb.into(),
-            },
-            &available_bytes,
-            &cancelled,
-        )
-        .map_err(|error| error.code().to_string())?;
+    let cached = if checkpoint::same_release(folder)? {
+        installation
+            .resume_android(android)
+            .map_err(|error| error.code().to_string())?
+    } else {
+        None
+    };
+    let phone = match cached {
+        Some(prepared) => prepared,
+        None => installation
+            .prepare_android(
+                &resource.join("android.payload"),
+                android,
+                ai_phone_host_runtime::android::Resources {
+                    cpus: request.phone.cpus.into(),
+                    memory_mb: request.phone.memory_mb,
+                    storage_gb: request.phone.storage_gb.into(),
+                },
+                &available_bytes,
+                &cancelled,
+            )
+            .map_err(|error| error.code().to_string())?,
+    };
     if components.qemu {
         let mut profile = serde_json::to_value(request).map_err(|_| "invalid_device_resources")?;
         profile["android_qemu"] = serde_json::Value::Bool(
@@ -589,6 +600,10 @@ fn run_native_installer(
         .arg(android)
         .arg(image_digest)
         .current_dir(folder);
+    #[cfg(target_os = "macos")]
+    if checkpoint::same_release(folder)? {
+        command.arg("--resume");
+    }
     execute(manager, command, folder)
 }
 
@@ -603,6 +618,10 @@ pub fn start(app: tauri::AppHandle, request: Request) -> Result<(), String> {
     }
     prepare_folder(&path)?;
     let manager = app.state::<Bootstrap>().0.clone();
+    let closing = manager.closing.lock().unwrap();
+    if *closing {
+        return Err("installation_cancelled".into());
+    }
     if manager.running.swap(true, Ordering::SeqCst) {
         return Err("installation_running".into());
     }
@@ -612,6 +631,7 @@ pub fn start(app: tauri::AppHandle, request: Request) -> Result<(), String> {
         manager.running.store(false, Ordering::SeqCst);
         return Err(error);
     }
+    drop(closing);
     std::thread::spawn(move || {
         if let Err(error) = run(&app, &manager, &path, request) {
             manager.failed(&path, &error);
@@ -622,8 +642,8 @@ pub fn start(app: tauri::AppHandle, request: Request) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-pub fn upgrade_needed(app: &tauri::AppHandle) -> Result<bool, String> {
-    checkpoint::upgrade_needed(&home(app)?)
+pub fn same_release(app: &tauri::AppHandle) -> Result<bool, String> {
+    checkpoint::same_release(&home(app)?)
 }
 
 pub fn installed(app: &tauri::AppHandle) -> Result<bool, String> {
@@ -674,23 +694,6 @@ pub async fn installed_services_ready(app: &tauri::AppHandle, client: &reqwest::
             })
     }
 
-    async fn desktop(client: &reqwest::Client, token: &str) -> bool {
-        let Ok(mut response) = client
-            .get("http://127.0.0.1:17865/desktop/screen")
-            .bearer_auth(token)
-            .send()
-            .await
-        else {
-            return false;
-        };
-        response.status().is_success()
-            && response
-                .headers()
-                .get("content-type")
-                .is_some_and(|value| value.as_bytes().starts_with(b"multipart/x-mixed-replace"))
-            && matches!(response.chunk().await, Ok(Some(_)))
-    }
-
     let (Ok(home), Ok(payload)) = (home(app), checkpoint::payload()) else {
         return false;
     };
@@ -721,7 +724,7 @@ pub async fn installed_services_ready(app: &tauri::AppHandle, client: &reqwest::
         owner_id: "local-user".into(),
         ..Default::default()
     };
-    let (database, phone, desktop) = tokio::join!(
+    let (database, phone, media) = tokio::join!(
         protobuf(
             client
                 .post("http://127.0.0.1:17863/v1/setup/status")
@@ -734,9 +737,12 @@ pub async fn installed_services_ready(app: &tauri::AppHandle, client: &reqwest::
                 .bearer_auth(runner.trim())
                 .body(phone.encode_to_vec()),
         ),
-        desktop(client, runner.trim()),
+        client
+            .get("http://127.0.0.1:17865/status")
+            .bearer_auth(runner.trim())
+            .send(),
     );
-    database && phone && desktop
+    database && phone && media.is_ok_and(|response| response.status().is_success())
 }
 
 pub fn ready(app: &tauri::AppHandle) -> bool {
@@ -760,6 +766,23 @@ pub fn wait_until_idle(app: &tauri::AppHandle) {
     while is_running(app) {
         std::thread::sleep(Duration::from_millis(150));
     }
+}
+
+pub async fn shutdown(app: &tauri::AppHandle) -> Result<(), String> {
+    *app.state::<Bootstrap>().0.closing.lock().unwrap() = true;
+    cancel(app);
+    let waiting = app.clone();
+    tauri::async_runtime::spawn_blocking(move || wait_until_idle(&waiting))
+        .await
+        .map_err(|_| "installer_state")?;
+    let folder = home(app)?;
+    #[cfg(target_os = "macos")]
+    let result = ai_phone_host_runtime::stop_macos_installation(&folder).await;
+    #[cfg(windows)]
+    let result = ai_phone_host_runtime::qemu_host::stop_installed(&folder).await;
+    #[cfg(not(any(target_os = "macos", windows)))]
+    let result = Ok::<_, ai_phone_host_runtime::Error>(());
+    result.map_err(|error| error.code().into())
 }
 
 pub fn accept_license(app: &tauri::AppHandle) -> Result<(), String> {

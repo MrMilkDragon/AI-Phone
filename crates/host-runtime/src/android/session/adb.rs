@@ -24,6 +24,25 @@ impl Adb {
             .await
             .map_err(error)
     }
+    #[cfg(any(target_os = "macos", windows))]
+    pub async fn sync(&self) -> Result<()> {
+        let receipt = self
+            .client()?
+            .shell(
+                "sync",
+                ai_phone_adb::Limits {
+                    stdout: 1024,
+                    stderr: 1024,
+                },
+                Duration::from_secs(4),
+            )
+            .await
+            .map_err(error)?;
+        if receipt.code != 0 {
+            return Err(Error::Invalid("android_sync_failed"));
+        }
+        Ok(())
+    }
     pub async fn uid(&self) -> Result<u32> {
         let bytes = self.request("shell:id -u", 128).await?;
         std::str::from_utf8(&bytes)

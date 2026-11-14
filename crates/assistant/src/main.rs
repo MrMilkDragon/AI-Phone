@@ -387,6 +387,16 @@ async fn serve(arguments: Vec<std::ffi::OsString>) -> Result<(), Box<dyn std::er
             post(workbench::upload_file).layer(DefaultBodyLimit::max(12 * 1024 * 1024)),
         )
         .route(
+            "/v1/workbench/knowledge-image-upload",
+            post(workbench::upload_knowledge_image).layer(DefaultBodyLimit::max(
+                workbench::knowledge_images::LIMIT + 16,
+            )),
+        )
+        .route(
+            "/v1/workbench/knowledge-image/{id}",
+            axum::routing::get(workbench::knowledge_images::read),
+        )
+        .route(
             "/v1/upload",
             post(http::upload).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
         )

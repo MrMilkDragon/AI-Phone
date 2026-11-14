@@ -220,6 +220,46 @@ pub(crate) fn environment(root: &Path, user: &Path) -> Result<BTreeMap<String, S
     selection(root, user)?.map_or_else(|| Ok(BTreeMap::new()), |value| value.environment())
 }
 
+#[cfg(target_os = "macos")]
+pub(crate) async fn shutdown(home: &Path) -> Result<()> {
+    let user = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or(Error::Invalid("unix_host_home"))?;
+    let Some(engine) = selection(&home.join("user"), &user)? else {
+        return Ok(());
+    };
+    let command = |arguments: &[&str]| {
+        let mut command = tokio::process::Command::new(&engine.command);
+        command
+            .args(arguments)
+            .env("LIMA_HOME", &engine.state)
+            .kill_on_drop(true);
+        command
+    };
+    let stop = async {
+        let observed = command(&[
+            "list",
+            "--format",
+            "{{if eq .Name \"ai-phone\"}}{{.Status}}{{end}}",
+        ])
+        .output()
+        .await?;
+        if !observed.status.success() {
+            return Err(Error::Invalid("container_host_status"));
+        }
+        if matches!(observed.stdout.trim_ascii(), b"" | b"Stopped") {
+            return Ok(());
+        }
+        if !command(&["stop", "ai-phone"]).status().await?.success() {
+            return Err(Error::Invalid("container_host_stop_failed"));
+        }
+        Ok(())
+    };
+    tokio::time::timeout(std::time::Duration::from_secs(60), stop)
+        .await
+        .map_err(|_| Error::Invalid("container_host_stop_timeout"))?
+}
+
 impl Selection {
     fn environment(&self) -> Result<BTreeMap<String, String>> {
         Ok(BTreeMap::from([

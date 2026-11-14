@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai_phone/v1/workbench.proto.
  */
 export const file_ai_phone_v1_workbench: GenFile = /*@__PURE__*/
-  fileDesc("ChthaV9waG9uZS92MS93b3JrYmVuY2gucHJvdG8SC2FpX3Bob25lLnYxIk8KEFdvcmtiZW5jaFJlcXVlc3QSDQoFcXVlcnkYASABKAkSCgoCaWQYAiABKAkSEAoIYWdlbnRfaWQYBCABKAlKBAgDEARSCGFyY2hpdmVkIpkBCgxSdW50aW1lU2tpbGwSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIOCgZzb3VyY2UYBCABKAkSDwoHY29udGVudBgFIAEoCRIPCgdlbmFibGVkGAYgASgIEg8KB2J1aWx0aW4YByABKAgSFwoPY29udGVudF92ZXJzaW9uGAggASgJIjYKCVNraWxsTGlzdBIpCgZza2lsbHMYASADKAsyGS5haV9waG9uZS52MS5SdW50aW1lU2tpbGwiQwoSU2tpbGxJbXBvcnRSZXF1ZXN0Eg4KBnNvdXJjZRgBIAEoCRIPCgdjb250ZW50GAIgASgJEgwKBG5hbWUYAyABKAkiQQoSU2tpbGxVcGRhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEg8KB2VuYWJsZWQYAiABKAgSDgoGcmVtb3ZlGAMgASgIIlEKEFNraWxsRWRpdFJlcXVlc3QSCgoCaWQYASABKAkSDwoHY29udGVudBgCIAEoCRIgChhleHBlY3RlZF9jb250ZW50X3ZlcnNpb24YAyABKAkidwoRS25vd2xlZGdlRG9jdW1lbnQSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHY29udGVudBgDIAEoCRIQCghyZXZpc2lvbhgEIAEoBBITCgtyZWxhdGVkX2lkcxgFIAMoCRIPCgd0cmFzaGVkGAYgASgIIkIKDUtub3dsZWRnZUxpc3QSMQoJZG9jdW1lbnRzGAEgAygLMh4uYWlfcGhvbmUudjEuS25vd2xlZGdlRG9jdW1lbnQicgoUS25vd2xlZGdlU2F2ZVJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHY29udGVudBgDIAEoCRIZChFleHBlY3RlZF9yZXZpc2lvbhgEIAEoBBITCgtyZWxhdGVkX2lkcxgFIAMoCSI/ChZLbm93bGVkZ2VEZWxldGVSZXF1ZXN0EgoKAmlkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIgASgEIuoBCg9Nb2RlbENhbGxUaW1pbmcSFgoOcHJlcGFyYXRpb25fbXMYASABKAQSFwoKaGVhZGVyc19tcxgCIAEoBEgAiAEBEhoKDWZpcnN0X2J5dGVfbXMYAyABKARIAYgBARIQCghtb2RlbF9tcxgEIAEoBBISCgplbGFwc2VkX21zGAUgASgEEhUKDXJlcXVlc3RfYnl0ZXMYBiABKAQSGgoNZmlyc3RfdGV4dF9tcxgHIAEoBEgCiAEBQg0KC19oZWFkZXJzX21zQhAKDl9maXJzdF9ieXRlX21zQhAKDl9maXJzdF90ZXh0X21zIt8BCgxIYXJuZXNzRXZlbnQSCgoCaWQYASABKAkSDgoGcnVuX2lkGAIgASgJEhIKCm1lc3NhZ2VfaWQYAyABKAkSDAoEa2luZBgEIAEoCRINCgV0aXRsZRgFIAEoCRIPCgdjb250ZW50GAYgASgJEg4KBnN0YXR1cxgHIAEoCRIVCg1jcmVhdGVkX2F0X21zGAggASgEEhYKDmZpbmlzaGVkX2F0X21zGAkgASgEEjIKDG1vZGVsX3RpbWluZxgKIAEoCzIcLmFpX3Bob25lLnYxLk1vZGVsQ2FsbFRpbWluZyJLChNIYXJuZXNzRXZlbnRSZXF1ZXN0Eg4KBnJ1bl9pZBgBIAEoCRISCgptZXNzYWdlX2lkGAIgASgJEhAKCGFmdGVyX21zGAMgASgEIj0KEEhhcm5lc3NFdmVudExpc3QSKQoGZXZlbnRzGAEgAygLMhkuYWlfcGhvbmUudjEuSGFybmVzc0V2ZW50IlMKDldvcmtzcGFjZUVudHJ5EgwKBHBhdGgYASABKAkSDAoEbmFtZRgCIAEoCRIRCglkaXJlY3RvcnkYAyABKAgSEgoKc2l6ZV9ieXRlcxgEIAEoBCJKCg5Xb3Jrc3BhY2VGaWxlcxIqCgVmaWxlcxgBIAMoCzIbLmFpX3Bob25lLnYxLldvcmtzcGFjZUVudHJ5EgwKBHBhdGgYAiABKAkiPAoLTW9kZWxNZW1vcnkSCgoCaWQYASABKAkSDwoHY29udGVudBgCIAEoCRIQCghyZXZpc2lvbhgDIAEoBCI4CgpNZW1vcnlMaXN0EioKCG1lbW9yaWVzGAEgAygLMhguYWlfcGhvbmUudjEuTW9kZWxNZW1vcnkiXQoRTWVtb3J5U2F2ZVJlcXVlc3QSCgoCaWQYASABKAkSDwoHY29udGVudBgCIAEoCRIZChFleHBlY3RlZF9yZXZpc2lvbhgDIAEoBBIQCghhZ2VudF9pZBgEIAEoCSJOChNNZW1vcnlEZWxldGVSZXF1ZXN0EgoKAmlkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIgASgEEhAKCGFnZW50X2lkGAMgASgJImEKFEtub3dsZWRnZUxpbmtSZXF1ZXN0EgoKAmlkGAEgASgJEhEKCXRhcmdldF9pZBgCIAEoCRIPCgdwcmVzZW50GAMgASgIEhkKEWV4cGVjdGVkX3JldmlzaW9uGAQgASgEIi8KDEZpbGVMb2NhdGlvbhIRCglkZXZpY2VfaWQYASABKAkSDAoEcGF0aBgCIAEoCSJ3CglGaWxlRW50cnkSDAoEcGF0aBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWRpcmVjdG9yeRgDIAEoCBISCgpzaXplX2J5dGVzGAQgASgEEhYKDm1vZGlmaWVkX2F0X21zGAUgASgEEg8KB3N5bWxpbmsYBiABKAgiYwoLRmlsZUxpc3RpbmcSKwoIbG9jYXRpb24YASABKAsyGS5haV9waG9uZS52MS5GaWxlTG9jYXRpb24SJwoHZW50cmllcxgCIAMoCzIWLmFpX3Bob25lLnYxLkZpbGVFbnRyeSKnAQoRRmlsZU1hbmFnZVJlcXVlc3QSLQoJb3BlcmF0aW9uGAEgASgOMhouYWlfcGhvbmUudjEuRmlsZU9wZXJhdGlvbhIqCgdzb3VyY2VzGAIgAygLMhkuYWlfcGhvbmUudjEuRmlsZUxvY2F0aW9uEikKBnRhcmdldBgDIAEoCzIZLmFpX3Bob25lLnYxLkZpbGVMb2NhdGlvbhIMCgRuYW1lGAQgASgJInEKCkZpbGVSZXN1bHQSKQoGc291cmNlGAEgASgLMhkuYWlfcGhvbmUudjEuRmlsZUxvY2F0aW9uEikKBnRhcmdldBgCIAEoCzIZLmFpX3Bob25lLnYxLkZpbGVMb2NhdGlvbhINCgVlcnJvchgDIAEoCSI8ChBGaWxlTWFuYWdlUmVzdWx0EigKB3Jlc3VsdHMYASADKAsyFy5haV9waG9uZS52MS5GaWxlUmVzdWx0KrEBCg1GaWxlT3BlcmF0aW9uEh4KGkZJTEVfT1BFUkFUSU9OX1VOU1BFQ0lGSUVEEAASFwoTRklMRV9PUEVSQVRJT05fQ09QWRABEhcKE0ZJTEVfT1BFUkFUSU9OX01PVkUQAhIZChVGSUxFX09QRVJBVElPTl9ERUxFVEUQAxIYChRGSUxFX09QRVJBVElPTl9NS0RJUhAEEhkKFUZJTEVfT1BFUkFUSU9OX1JFTkFNRRAFYgZwcm90bzM");
+  fileDesc("ChthaV9waG9uZS92MS93b3JrYmVuY2gucHJvdG8SC2FpX3Bob25lLnYxIk8KEFdvcmtiZW5jaFJlcXVlc3QSDQoFcXVlcnkYASABKAkSCgoCaWQYAiABKAkSEAoIYWdlbnRfaWQYBCABKAlKBAgDEARSCGFyY2hpdmVkIpkBCgxSdW50aW1lU2tpbGwSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIOCgZzb3VyY2UYBCABKAkSDwoHY29udGVudBgFIAEoCRIPCgdlbmFibGVkGAYgASgIEg8KB2J1aWx0aW4YByABKAgSFwoPY29udGVudF92ZXJzaW9uGAggASgJIjYKCVNraWxsTGlzdBIpCgZza2lsbHMYASADKAsyGS5haV9waG9uZS52MS5SdW50aW1lU2tpbGwiQwoSU2tpbGxJbXBvcnRSZXF1ZXN0Eg4KBnNvdXJjZRgBIAEoCRIPCgdjb250ZW50GAIgASgJEgwKBG5hbWUYAyABKAkiQQoSU2tpbGxVcGRhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEg8KB2VuYWJsZWQYAiABKAgSDgoGcmVtb3ZlGAMgASgIIlEKEFNraWxsRWRpdFJlcXVlc3QSCgoCaWQYASABKAkSDwoHY29udGVudBgCIAEoCRIgChhleHBlY3RlZF9jb250ZW50X3ZlcnNpb24YAyABKAkidwoRS25vd2xlZGdlRG9jdW1lbnQSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHY29udGVudBgDIAEoCRIQCghyZXZpc2lvbhgEIAEoBBITCgtyZWxhdGVkX2lkcxgFIAMoCRIPCgd0cmFzaGVkGAYgASgIIkIKDUtub3dsZWRnZUxpc3QSMQoJZG9jdW1lbnRzGAEgAygLMh4uYWlfcGhvbmUudjEuS25vd2xlZGdlRG9jdW1lbnQicgoUS25vd2xlZGdlU2F2ZVJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDwoHY29udGVudBgDIAEoCRIZChFleHBlY3RlZF9yZXZpc2lvbhgEIAEoBBITCgtyZWxhdGVkX2lkcxgFIAMoCSI/ChZLbm93bGVkZ2VEZWxldGVSZXF1ZXN0EgoKAmlkGAEgASgJEhkKEWV4cGVjdGVkX3JldmlzaW9uGAIgASgEIiwKG0tub3dsZWRnZUltYWdlVXBsb2FkUmVxdWVzdBINCgVpbWFnZRgBIAEoDCIcCg5Lbm93bGVkZ2VJbWFnZRIKCgJpZBgBIAEoCSLqAQoPTW9kZWxDYWxsVGltaW5nEhYKDnByZXBhcmF0aW9uX21zGAEgASgEEhcKCmhlYWRlcnNfbXMYAiABKARIAIgBARIaCg1maXJzdF9ieXRlX21zGAMgASgESAGIAQESEAoIbW9kZWxfbXMYBCABKAQSEgoKZWxhcHNlZF9tcxgFIAEoBBIVCg1yZXF1ZXN0X2J5dGVzGAYgASgEEhoKDWZpcnN0X3RleHRfbXMYByABKARIAogBAUINCgtfaGVhZGVyc19tc0IQCg5fZmlyc3RfYnl0ZV9tc0IQCg5fZmlyc3RfdGV4dF9tcyLfAQoMSGFybmVzc0V2ZW50EgoKAmlkGAEgASgJEg4KBnJ1bl9pZBgCIAEoCRISCgptZXNzYWdlX2lkGAMgASgJEgwKBGtpbmQYBCABKAkSDQoFdGl0bGUYBSABKAkSDwoHY29udGVudBgGIAEoCRIOCgZzdGF0dXMYByABKAkSFQoNY3JlYXRlZF9hdF9tcxgIIAEoBBIWCg5maW5pc2hlZF9hdF9tcxgJIAEoBBIyCgxtb2RlbF90aW1pbmcYCiABKAsyHC5haV9waG9uZS52MS5Nb2RlbENhbGxUaW1pbmciSwoTSGFybmVzc0V2ZW50UmVxdWVzdBIOCgZydW5faWQYASABKAkSEgoKbWVzc2FnZV9pZBgCIAEoCRIQCghhZnRlcl9tcxgDIAEoBCI9ChBIYXJuZXNzRXZlbnRMaXN0EikKBmV2ZW50cxgBIAMoCzIZLmFpX3Bob25lLnYxLkhhcm5lc3NFdmVudCJTCg5Xb3Jrc3BhY2VFbnRyeRIMCgRwYXRoGAEgASgJEgwKBG5hbWUYAiABKAkSEQoJZGlyZWN0b3J5GAMgASgIEhIKCnNpemVfYnl0ZXMYBCABKAQiSgoOV29ya3NwYWNlRmlsZXMSKgoFZmlsZXMYASADKAsyGy5haV9waG9uZS52MS5Xb3Jrc3BhY2VFbnRyeRIMCgRwYXRoGAIgASgJIjwKC01vZGVsTWVtb3J5EgoKAmlkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSEAoIcmV2aXNpb24YAyABKAQiOAoKTWVtb3J5TGlzdBIqCghtZW1vcmllcxgBIAMoCzIYLmFpX3Bob25lLnYxLk1vZGVsTWVtb3J5Il0KEU1lbW9yeVNhdmVSZXF1ZXN0EgoKAmlkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSGQoRZXhwZWN0ZWRfcmV2aXNpb24YAyABKAQSEAoIYWdlbnRfaWQYBCABKAkiTgoTTWVtb3J5RGVsZXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIZChFleHBlY3RlZF9yZXZpc2lvbhgCIAEoBBIQCghhZ2VudF9pZBgDIAEoCSJhChRLbm93bGVkZ2VMaW5rUmVxdWVzdBIKCgJpZBgBIAEoCRIRCgl0YXJnZXRfaWQYAiABKAkSDwoHcHJlc2VudBgDIAEoCBIZChFleHBlY3RlZF9yZXZpc2lvbhgEIAEoBCIvCgxGaWxlTG9jYXRpb24SEQoJZGV2aWNlX2lkGAEgASgJEgwKBHBhdGgYAiABKAkidwoJRmlsZUVudHJ5EgwKBHBhdGgYASABKAkSDAoEbmFtZRgCIAEoCRIRCglkaXJlY3RvcnkYAyABKAgSEgoKc2l6ZV9ieXRlcxgEIAEoBBIWCg5tb2RpZmllZF9hdF9tcxgFIAEoBBIPCgdzeW1saW5rGAYgASgIImMKC0ZpbGVMaXN0aW5nEisKCGxvY2F0aW9uGAEgASgLMhkuYWlfcGhvbmUudjEuRmlsZUxvY2F0aW9uEicKB2VudHJpZXMYAiADKAsyFi5haV9waG9uZS52MS5GaWxlRW50cnkipwEKEUZpbGVNYW5hZ2VSZXF1ZXN0Ei0KCW9wZXJhdGlvbhgBIAEoDjIaLmFpX3Bob25lLnYxLkZpbGVPcGVyYXRpb24SKgoHc291cmNlcxgCIAMoCzIZLmFpX3Bob25lLnYxLkZpbGVMb2NhdGlvbhIpCgZ0YXJnZXQYAyABKAsyGS5haV9waG9uZS52MS5GaWxlTG9jYXRpb24SDAoEbmFtZRgEIAEoCSJxCgpGaWxlUmVzdWx0EikKBnNvdXJjZRgBIAEoCzIZLmFpX3Bob25lLnYxLkZpbGVMb2NhdGlvbhIpCgZ0YXJnZXQYAiABKAsyGS5haV9waG9uZS52MS5GaWxlTG9jYXRpb24SDQoFZXJyb3IYAyABKAkiPAoQRmlsZU1hbmFnZVJlc3VsdBIoCgdyZXN1bHRzGAEgAygLMhcuYWlfcGhvbmUudjEuRmlsZVJlc3VsdCqxAQoNRmlsZU9wZXJhdGlvbhIeChpGSUxFX09QRVJBVElPTl9VTlNQRUNJRklFRBAAEhcKE0ZJTEVfT1BFUkFUSU9OX0NPUFkQARIXChNGSUxFX09QRVJBVElPTl9NT1ZFEAISGQoVRklMRV9PUEVSQVRJT05fREVMRVRFEAMSGAoURklMRV9PUEVSQVRJT05fTUtESVIQBBIZChVGSUxFX09QRVJBVElPTl9SRU5BTUUQBWIGcHJvdG8z");
 
 /**
  * @generated from message ai_phone.v1.WorkbenchRequest
@@ -308,6 +308,40 @@ export const KnowledgeDeleteRequestSchema: GenMessage<KnowledgeDeleteRequest> = 
   messageDesc(file_ai_phone_v1_workbench, 9);
 
 /**
+ * @generated from message ai_phone.v1.KnowledgeImageUploadRequest
+ */
+export type KnowledgeImageUploadRequest = Message<"ai_phone.v1.KnowledgeImageUploadRequest"> & {
+  /**
+   * @generated from field: bytes image = 1;
+   */
+  image: Uint8Array;
+};
+
+/**
+ * Describes the message ai_phone.v1.KnowledgeImageUploadRequest.
+ * Use `create(KnowledgeImageUploadRequestSchema)` to create a new message.
+ */
+export const KnowledgeImageUploadRequestSchema: GenMessage<KnowledgeImageUploadRequest> = /*@__PURE__*/
+  messageDesc(file_ai_phone_v1_workbench, 10);
+
+/**
+ * @generated from message ai_phone.v1.KnowledgeImage
+ */
+export type KnowledgeImage = Message<"ai_phone.v1.KnowledgeImage"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message ai_phone.v1.KnowledgeImage.
+ * Use `create(KnowledgeImageSchema)` to create a new message.
+ */
+export const KnowledgeImageSchema: GenMessage<KnowledgeImage> = /*@__PURE__*/
+  messageDesc(file_ai_phone_v1_workbench, 11);
+
+/**
  * @generated from message ai_phone.v1.ModelCallTiming
  */
 export type ModelCallTiming = Message<"ai_phone.v1.ModelCallTiming"> & {
@@ -352,7 +386,7 @@ export type ModelCallTiming = Message<"ai_phone.v1.ModelCallTiming"> & {
  * Use `create(ModelCallTimingSchema)` to create a new message.
  */
 export const ModelCallTimingSchema: GenMessage<ModelCallTiming> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 10);
+  messageDesc(file_ai_phone_v1_workbench, 12);
 
 /**
  * @generated from message ai_phone.v1.HarnessEvent
@@ -414,7 +448,7 @@ export type HarnessEvent = Message<"ai_phone.v1.HarnessEvent"> & {
  * Use `create(HarnessEventSchema)` to create a new message.
  */
 export const HarnessEventSchema: GenMessage<HarnessEvent> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 11);
+  messageDesc(file_ai_phone_v1_workbench, 13);
 
 /**
  * @generated from message ai_phone.v1.HarnessEventRequest
@@ -441,7 +475,7 @@ export type HarnessEventRequest = Message<"ai_phone.v1.HarnessEventRequest"> & {
  * Use `create(HarnessEventRequestSchema)` to create a new message.
  */
 export const HarnessEventRequestSchema: GenMessage<HarnessEventRequest> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 12);
+  messageDesc(file_ai_phone_v1_workbench, 14);
 
 /**
  * @generated from message ai_phone.v1.HarnessEventList
@@ -458,7 +492,7 @@ export type HarnessEventList = Message<"ai_phone.v1.HarnessEventList"> & {
  * Use `create(HarnessEventListSchema)` to create a new message.
  */
 export const HarnessEventListSchema: GenMessage<HarnessEventList> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 13);
+  messageDesc(file_ai_phone_v1_workbench, 15);
 
 /**
  * @generated from message ai_phone.v1.WorkspaceEntry
@@ -490,7 +524,7 @@ export type WorkspaceEntry = Message<"ai_phone.v1.WorkspaceEntry"> & {
  * Use `create(WorkspaceEntrySchema)` to create a new message.
  */
 export const WorkspaceEntrySchema: GenMessage<WorkspaceEntry> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 14);
+  messageDesc(file_ai_phone_v1_workbench, 16);
 
 /**
  * @generated from message ai_phone.v1.WorkspaceFiles
@@ -512,7 +546,7 @@ export type WorkspaceFiles = Message<"ai_phone.v1.WorkspaceFiles"> & {
  * Use `create(WorkspaceFilesSchema)` to create a new message.
  */
 export const WorkspaceFilesSchema: GenMessage<WorkspaceFiles> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 15);
+  messageDesc(file_ai_phone_v1_workbench, 17);
 
 /**
  * @generated from message ai_phone.v1.ModelMemory
@@ -539,7 +573,7 @@ export type ModelMemory = Message<"ai_phone.v1.ModelMemory"> & {
  * Use `create(ModelMemorySchema)` to create a new message.
  */
 export const ModelMemorySchema: GenMessage<ModelMemory> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 16);
+  messageDesc(file_ai_phone_v1_workbench, 18);
 
 /**
  * @generated from message ai_phone.v1.MemoryList
@@ -556,7 +590,7 @@ export type MemoryList = Message<"ai_phone.v1.MemoryList"> & {
  * Use `create(MemoryListSchema)` to create a new message.
  */
 export const MemoryListSchema: GenMessage<MemoryList> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 17);
+  messageDesc(file_ai_phone_v1_workbench, 19);
 
 /**
  * @generated from message ai_phone.v1.MemorySaveRequest
@@ -588,7 +622,7 @@ export type MemorySaveRequest = Message<"ai_phone.v1.MemorySaveRequest"> & {
  * Use `create(MemorySaveRequestSchema)` to create a new message.
  */
 export const MemorySaveRequestSchema: GenMessage<MemorySaveRequest> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 18);
+  messageDesc(file_ai_phone_v1_workbench, 20);
 
 /**
  * @generated from message ai_phone.v1.MemoryDeleteRequest
@@ -615,7 +649,7 @@ export type MemoryDeleteRequest = Message<"ai_phone.v1.MemoryDeleteRequest"> & {
  * Use `create(MemoryDeleteRequestSchema)` to create a new message.
  */
 export const MemoryDeleteRequestSchema: GenMessage<MemoryDeleteRequest> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 19);
+  messageDesc(file_ai_phone_v1_workbench, 21);
 
 /**
  * @generated from message ai_phone.v1.KnowledgeLinkRequest
@@ -647,7 +681,7 @@ export type KnowledgeLinkRequest = Message<"ai_phone.v1.KnowledgeLinkRequest"> &
  * Use `create(KnowledgeLinkRequestSchema)` to create a new message.
  */
 export const KnowledgeLinkRequestSchema: GenMessage<KnowledgeLinkRequest> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 20);
+  messageDesc(file_ai_phone_v1_workbench, 22);
 
 /**
  * Empty device_id addresses the shared harness workspace; device paths are absolute.
@@ -671,7 +705,7 @@ export type FileLocation = Message<"ai_phone.v1.FileLocation"> & {
  * Use `create(FileLocationSchema)` to create a new message.
  */
 export const FileLocationSchema: GenMessage<FileLocation> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 21);
+  messageDesc(file_ai_phone_v1_workbench, 23);
 
 /**
  * @generated from message ai_phone.v1.FileEntry
@@ -713,7 +747,7 @@ export type FileEntry = Message<"ai_phone.v1.FileEntry"> & {
  * Use `create(FileEntrySchema)` to create a new message.
  */
 export const FileEntrySchema: GenMessage<FileEntry> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 22);
+  messageDesc(file_ai_phone_v1_workbench, 24);
 
 /**
  * @generated from message ai_phone.v1.FileListing
@@ -735,7 +769,7 @@ export type FileListing = Message<"ai_phone.v1.FileListing"> & {
  * Use `create(FileListingSchema)` to create a new message.
  */
 export const FileListingSchema: GenMessage<FileListing> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 23);
+  messageDesc(file_ai_phone_v1_workbench, 25);
 
 /**
  * @generated from message ai_phone.v1.FileManageRequest
@@ -767,7 +801,7 @@ export type FileManageRequest = Message<"ai_phone.v1.FileManageRequest"> & {
  * Use `create(FileManageRequestSchema)` to create a new message.
  */
 export const FileManageRequestSchema: GenMessage<FileManageRequest> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 24);
+  messageDesc(file_ai_phone_v1_workbench, 26);
 
 /**
  * @generated from message ai_phone.v1.FileResult
@@ -794,7 +828,7 @@ export type FileResult = Message<"ai_phone.v1.FileResult"> & {
  * Use `create(FileResultSchema)` to create a new message.
  */
 export const FileResultSchema: GenMessage<FileResult> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 25);
+  messageDesc(file_ai_phone_v1_workbench, 27);
 
 /**
  * @generated from message ai_phone.v1.FileManageResult
@@ -811,7 +845,7 @@ export type FileManageResult = Message<"ai_phone.v1.FileManageResult"> & {
  * Use `create(FileManageResultSchema)` to create a new message.
  */
 export const FileManageResultSchema: GenMessage<FileManageResult> = /*@__PURE__*/
-  messageDesc(file_ai_phone_v1_workbench, 26);
+  messageDesc(file_ai_phone_v1_workbench, 28);
 
 /**
  * @generated from enum ai_phone.v1.FileOperation

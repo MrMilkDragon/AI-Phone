@@ -7,6 +7,61 @@ use ai_phone_api::wire::{
 use std::{process::Stdio, time::Duration};
 use tokio::{process::Command, sync::watch};
 
+#[cfg(target_os = "macos")]
+pub(super) async fn shutdown(home: &std::path::Path) -> Result<()> {
+    use crate::filesystem;
+    use rustix::process::{Pid, Signal, kill_process};
+    let lock = home.join("user/data/android/native/session.lock");
+    if !lock.try_exists()? || filesystem::lease(&lock)?.is_some() {
+        return Ok(());
+    }
+    let flush = crate::android::session::flush_attached(home).await;
+    let output = Command::new("/usr/sbin/lsof")
+        .args(["-nP", "-Fpc", "--"])
+        .arg(&lock)
+        .output()
+        .await?;
+    if filesystem::lease(&lock)?.is_some() {
+        return flush;
+    }
+    let body = String::from_utf8_lossy(&output.stdout);
+    let mut lines = body.lines();
+    let Some(value) = lines.next().and_then(|pid| pid.strip_prefix('p')) else {
+        return Err(Error::Invalid("android_session_stop_owner"));
+    };
+    let pid = value
+        .parse()
+        .ok()
+        .and_then(Pid::from_raw)
+        .ok_or(Error::Invalid("android_session_stop_owner"))?;
+    if lines.next() != Some("cai-phone-client") || lines.any(|line| line.starts_with('p')) {
+        return Err(Error::Invalid("android_session_stop_owner"));
+    }
+    let process = Command::new("/bin/ps")
+        .args(["-ww", "-p", value, "-o", "command="])
+        .output()
+        .await?;
+    if !String::from_utf8_lossy(&process.stdout)
+        .trim_end()
+        .ends_with("ai-phone-client --android-session")
+    {
+        return Err(Error::Invalid("android_session_stop_owner"));
+    }
+    match kill_process(pid, Signal::TERM) {
+        Ok(()) | Err(rustix::io::Errno::SRCH) => {}
+        Err(error) => return Err(std::io::Error::from(error).into()),
+    }
+    tokio::time::timeout(Duration::from_secs(20), async {
+        while filesystem::lease(&lock)?.is_none() {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        Ok::<(), Error>(())
+    })
+    .await
+    .map_err(|_| Error::Invalid("android_emulator_stop_unknown"))??;
+    flush
+}
+
 pub(super) async fn start(
     request: NativeAndroidStart,
     mut stop: watch::Receiver<bool>,

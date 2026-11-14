@@ -471,5 +471,11 @@
   "修改时间": "Geändert",
   "管理": "Verwalten",
   "取消": "Abbrechen",
-  "配置": "Konfiguration"
+  "配置": "Konfiguration",
+  "图片": "Bild",
+  "图片上传失败": "Bild konnte nicht hochgeladen werden",
+  "请使用 6 MB 以内的 PNG、JPEG 或 WebP 图片": "PNG-, JPEG- oder WebP-Bild bis 6 MB verwenden",
+  "文档已更新，当前草稿已保留": "Dokument aktualisiert. Dein Entwurf bleibt erhalten.",
+  "放弃草稿": "Entwurf verwerfen",
+  "知识网络": "Wissensgraph"
 }

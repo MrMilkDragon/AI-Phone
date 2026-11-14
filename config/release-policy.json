@@ -1,7 +1,7 @@
 {
   "version": "0.0.2",
   "release_name": "Beryllium",
-  "release_notes": "Install progress, a simpler Android home screen, and workbench proxy subscriptions.",
+  "release_notes": "Faster startup and clean shutdown, signed update alerts while devices load, and knowledge documents with images, links, and Agent maintenance.",
   "source_preview": {
     "license": "Apache-2.0",
     "remote_publication_authorized": true,

@@ -28,19 +28,22 @@ pub(super) struct Phone {
 fn owner_path(plan: &Plan) -> std::path::PathBuf {
     plan.home.join("session.pb")
 }
-fn read_owner(plan: &Plan) -> Result<Option<NativeAndroidSessionOwner>> {
-    let path = owner_path(plan);
+pub(super) fn session_record(path: &Path) -> Result<Option<NativeAndroidSessionOwner>> {
     if !path.try_exists()? {
         return Ok(None);
     }
     let value = NativeAndroidSessionOwner::decode(
-        filesystem::bounded_file_with_limit(&path, 16384)?.as_slice(),
+        filesystem::bounded_file_with_limit(path, 16384)?.as_slice(),
     )
     .map_err(|_| Error::Invalid("android_session_owner"))?;
-    if value != plan.owner() {
+    Ok(Some(value))
+}
+fn read_owner(plan: &Plan) -> Result<Option<NativeAndroidSessionOwner>> {
+    let value = session_record(&owner_path(plan))?;
+    if value.as_ref().is_some_and(|record| record != &plan.owner()) {
         return Err(Error::Invalid("android_session_conflict"));
     }
-    Ok(Some(value))
+    Ok(value)
 }
 fn save_owner(plan: &Plan) -> Result<()> {
     let mut out = tempfile::NamedTempFile::new_in(&plan.home)?;

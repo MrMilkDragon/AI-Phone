@@ -23,6 +23,20 @@ use std::{
 use tokio::{process::Command, sync::watch};
 
 pub(crate) const CONTRACT: &str = "ai-phone-unix-host-initializer-v1";
+
+#[cfg(target_os = "macos")]
+pub async fn shutdown(home: &Path) -> Result<()> {
+    if !home.try_exists()? {
+        return Ok(());
+    }
+    let home = home.canonicalize()?;
+    let services = crate::supervision::macos::deactivate(&home).await;
+    let (phone, engine) = tokio::join!(
+        phone::shutdown(&home),
+        crate::managed_engine::shutdown(&home),
+    );
+    services.and(phone).and(engine)
+}
 fn text(path: &Path) -> Result<String> {
     path.to_str()
         .map(str::to_owned)
@@ -99,6 +113,7 @@ struct Arguments {
     source: String,
     android: String,
     images: Option<String>,
+    resume: bool,
 }
 impl Arguments {
     fn parse(values: &[OsString]) -> Result<Self> {
@@ -112,9 +127,10 @@ impl Arguments {
                 .map(str::to_owned)
                 .ok_or(Error::Invalid("unix_host_arguments"))
         };
-        let images = match images {
-            [] => None,
-            [value] => Some(digest(value)?),
+        let (images, resume) = match images {
+            [] => (None, false),
+            [value] => (Some(digest(value)?), false),
+            [value, resume] if resume == "--resume" => (Some(digest(value)?), true),
             _ => return Err(Error::Invalid("unix_host_arguments")),
         };
         let source = digest(source)?;
@@ -135,6 +151,7 @@ impl Arguments {
             source,
             android,
             images,
+            resume,
         })
     }
 }
@@ -158,17 +175,28 @@ async fn initialize(
     let home = args.home.canonicalize()?;
     let payload = args.resource.join("source.payload");
     let source = args.source;
+    let resume = args.resume;
     let task_home = home.clone();
     let cancelled = cancel.clone();
-    let (installation, staged) = tokio::task::spawn_blocking(move || {
+    let (installation, staged, resumed) = tokio::task::spawn_blocking(move || {
         let mut installation = Installation::lock(&task_home)?;
-        let staged = installation.recover_source(
-            &payload,
-            &source,
-            &|path| fs2::available_space(path).unwrap_or(0),
-            &|| cancelled.load(Ordering::Relaxed),
-        )?;
-        Ok::<_, Error>((installation, staged))
+        let cancelled = || cancelled.load(Ordering::Relaxed);
+        let staged = if resume {
+            installation.resume_source(&source, &cancelled)?
+        } else {
+            None
+        };
+        let resumed = staged.is_some();
+        let staged = match staged {
+            Some(staged) => staged,
+            None => installation.recover_source(
+                &payload,
+                &source,
+                &|path| fs2::available_space(path).unwrap_or(0),
+                &cancelled,
+            )?,
+        };
+        Ok::<_, Error>((installation, staged, resumed))
     })
     .await
     .map_err(|_| Error::Invalid("unix_host_worker"))??;
@@ -186,13 +214,21 @@ async fn initialize(
     let cancelled = cancel.clone();
     let (installation, prepared) = tokio::task::spawn_blocking(move || {
         let mut installation = installation;
-        let prepared = installation.prepare_android(
-            &android,
-            &identity,
-            resources,
-            &|path| fs2::available_space(path).unwrap_or(0),
-            &|| cancelled.load(Ordering::Relaxed),
-        )?;
+        let cached = if resumed {
+            installation.resume_android(&identity)?
+        } else {
+            None
+        };
+        let prepared = match cached {
+            Some(prepared) => prepared,
+            None => installation.prepare_android(
+                &android,
+                &identity,
+                resources,
+                &|path| fs2::available_space(path).unwrap_or(0),
+                &|| cancelled.load(Ordering::Relaxed),
+            )?,
+        };
         Ok::<_, Error>((installation, prepared))
     })
     .await

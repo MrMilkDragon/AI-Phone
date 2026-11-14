@@ -107,12 +107,12 @@ fn read(folder: &Path) -> Result<Option<Progress>, String> {
         .map(|checkpoint| checkpoint.progress))
 }
 
-#[cfg(target_os = "macos")]
-pub(super) fn upgrade_needed(folder: &Path) -> Result<bool, String> {
+#[cfg(any(target_os = "macos", windows))]
+pub(super) fn same_release(folder: &Path) -> Result<bool, String> {
     let payload = payload()?;
     Ok(read_record(folder)?
         .and_then(Checkpoint::installed_payload)
-        .is_some_and(|installed| installed != payload))
+        .is_some_and(|installed| installed == payload))
 }
 
 #[cfg(test)]
@@ -229,7 +229,7 @@ mod tests {
         );
         #[cfg(target_os = "macos")]
         {
-            assert!(upgrade_needed(&folder).unwrap());
+            assert!(!same_release(&folder).unwrap());
             save(
                 &folder,
                 &Progress {
@@ -238,7 +238,7 @@ mod tests {
                 },
             )
             .unwrap();
-            assert!(upgrade_needed(&folder).unwrap());
+            assert!(!same_release(&folder).unwrap());
             save(
                 &folder,
                 &Progress {
@@ -247,7 +247,7 @@ mod tests {
                 },
             )
             .unwrap();
-            assert!(!upgrade_needed(&folder).unwrap());
+            assert!(same_release(&folder).unwrap());
         }
         fs::write(&file, b"partial checkpoint").unwrap();
         assert!(restore(&folder).is_err());

@@ -1,10 +1,12 @@
 import { languageWall } from './language-wall.js';
 import { mountLoadingOrb } from './loading-orb.js';
 import { bindSpringRange } from './range-motion.js';
-import { languageNames, localeFor, locales, setupLabels } from './setup-i18n.js';
+import { languageNames, localeFor, locales, setupLabels, updateLabels } from './setup-i18n.js';
 
 const $ = id => document.getElementById(id);
 const invoke = (command, args) => window.__TAURI_INTERNALS__.invoke(command, args);
+const updateControl = $('startup-update');
+const updateTrigger = updateControl.querySelector('summary');
 const languageKey = 'setup-language';
 const savedLanguage = localStorage.getItem(languageKey);
 let choosingLanguage = !locales.includes(savedLanguage);
@@ -13,6 +15,7 @@ let startup = { phase: window.__AIMANITY_STARTUP__ === true ? 'checking' : '', e
 let polling = false;
 let snapshot, actionError = '', statusError = '', pending = false, pollTimer, previousView, stopped = false;
 let activity = [], visibleActivityKey = '';
+let updateOffer, updating = false, updateFailed = false, updatePinned = false;
 const resources = { phone: { cpus: 2, memory_mb: 2048, storage_gb: 16 }, desktop: { cpus: 2, memory_mb: 2560 } };
 const sliders = [];
 const startupLabels = { checking: 'startupChecking', repairing: 'startupRepairing', opening: 'startupOpening', failed: 'startupFailed' };
@@ -60,6 +63,21 @@ function renderActivity(entries) {
   }));
 }
 
+function renderUpdate() {
+  updateControl.hidden = !startup.phase || !updateOffer;
+  if (updateControl.hidden) return;
+  const [name, confirm, inProgress, interrupted] = updateLabels[locale];
+  $('startup-update-label').textContent = name;
+  $('startup-update-release').textContent = `${updateOffer.version} ${updateOffer.name}`;
+  $('startup-update-notes').textContent = updateOffer.notes;
+  const error = $('startup-update-error');
+  error.hidden = !updateFailed;
+  error.textContent = updateFailed ? interrupted : '';
+  const button = $('startup-update-install');
+  button.disabled = updating;
+  button.textContent = updating ? inProgress : confirm;
+}
+
 function render() {
   const startupPhase = startup.phase && statusError ? 'failed' : startup.phase;
   const selectingLanguage = choosingLanguage && !startupPhase;
@@ -78,10 +96,11 @@ function render() {
   $('progress').hidden = !showingProgress;
   $('progress').dataset.startup = String(!!startupPhase);
   renderActivity(!selectingLanguage && showingProgress && !ready && state !== 'license' ? activity : []);
+  renderUpdate();
   if (startupPhase) {
     $('progress-detail').dataset.state = starting ? 'running' : 'startup-failed';
     $('progress-title').textContent = label('start');
-    $('phase').textContent = label(startupLabels[startupPhase]);
+    $('phase').textContent = (state === 'running' && label(progress.phase)) || label(startupLabels[startupPhase]);
     showError($('progress-error'), actionError || statusError || startup.error);
     $('license').hidden = true;
     $('retry').hidden = starting;
@@ -212,6 +231,8 @@ async function refresh() {
         }
       }
       snapshot = next;
+    } else {
+      snapshot = next.progress ? next : null;
     }
     statusError = '';
   } catch (error) {
@@ -258,6 +279,35 @@ $('retry').addEventListener('click', () => startup.phase ? void run('retry_start
 $('cancel').addEventListener('click', () => void run('cancel_deployment'));
 $('accept').addEventListener('click', () => void run('accept_deployment_license'));
 $('enter').addEventListener('click', () => void run('open_workbench', { locale }));
+updateTrigger.addEventListener('pointerenter', event => {
+  if (event.pointerType === 'mouse') updateControl.open = true;
+});
+updateControl.addEventListener('pointerleave', () => {
+  if (!updatePinned) updateControl.open = false;
+});
+updateTrigger.addEventListener('click', event => {
+  event.preventDefault();
+  updateControl.open = updatePinned = !updatePinned;
+});
+updateControl.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || !updateControl.open) return;
+  event.preventDefault();
+  updateControl.open = updatePinned = false;
+  updateTrigger.focus();
+});
+$('startup-update-install').addEventListener('click', async () => {
+  updatePinned = true;
+  updating = true;
+  updateFailed = false;
+  renderUpdate();
+  try {
+    await invoke('install_client_update', { version: updateOffer.version });
+  } catch {
+    updating = false;
+    updateFailed = true;
+    renderUpdate();
+  }
+});
 
 window.addEventListener('pagehide', () => {
   stopped = true;
@@ -265,4 +315,10 @@ window.addEventListener('pagehide', () => {
 });
 translate();
 render();
+if (startup.phase) {
+  void invoke('check_client_update').then(offer => {
+    updateOffer = offer;
+    renderUpdate();
+  }, () => {});
+}
 if (startup.phase || !choosingLanguage) beginPolling();

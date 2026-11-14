@@ -1,5 +1,6 @@
 use crate::*;
 
+pub(crate) mod knowledge_images;
 #[path = "skill_resources.rs"]
 mod skill_resources;
 
@@ -474,6 +475,9 @@ async fn knowledge_link(
         }
         let other = if own == id { target } else { id };
         let mut related: Vec<Uuid> = row.get("related_ids");
+        if related.contains(&other) == r.present {
+            continue;
+        }
         related.retain(|v| *v != other);
         if r.present {
             related.push(other);
@@ -547,6 +551,7 @@ pub(crate) async fn publish_learned_knowledge(
     title: &str,
     summary: &str,
     observations: &[String],
+    illustration: Option<&str>,
 ) -> Result<(), String> {
     let title = app.settings.redact(title);
     let key = title
@@ -554,16 +559,27 @@ pub(crate) async fn publish_learned_knowledge(
         .collect::<Vec<_>>()
         .join(" ")
         .to_lowercase();
-    let content = format!(
-        "{}\n\n来源：任务 `{run}`，核验 `{audit}`。",
-        app.settings.redact(summary)
-    );
-    sqlx::query(
+    let summary = app.settings.redact(summary);
+    let image = match illustration {
+        Some(id) => Some(knowledge_images::observation(app, run, id).await?),
+        None => None,
+    };
+    let mut content = format!("{summary}\n\n来源：任务 `{run}`，核验 `{audit}`。");
+    if let Some(image) = &image {
+        content.push_str(&image.markdown(&title));
+    }
+    let mut tx = app.db.begin().await.map_err(|error| error.to_string())?;
+    let saved = sqlx::query(
         "INSERT INTO knowledge_documents(id,title,content,learned_key)
          SELECT $1,$2,$3,$4 WHERE EXISTS (
              SELECT 1 FROM app_learning_observations
              WHERE run_id=$5 AND observation_id=ANY($6) AND after_action
-         ) ON CONFLICT (learned_key) DO NOTHING",
+         ) ON CONFLICT (learned_key) DO UPDATE
+           SET content=knowledge_documents.content || E'\n\n' || EXCLUDED.content,
+               revision=knowledge_documents.revision+1,updated_at=now()
+           WHERE knowledge_documents.deleted_at IS NULL
+             AND strpos(knowledge_documents.content,$7)=0
+             AND octet_length(knowledge_documents.content)+octet_length(EXCLUDED.content)+2<=1000000",
     )
     .bind(Uuid::now_v7())
     .bind(title)
@@ -571,9 +587,16 @@ pub(crate) async fn publish_learned_knowledge(
     .bind(key)
     .bind(run)
     .bind(observations)
-    .execute(&app.db)
+    .bind(summary)
+    .execute(&mut *tx)
     .await
     .map_err(|e| e.to_string())?;
+    if saved.rows_affected() == 1
+        && let Some(image) = image
+    {
+        image.insert(&mut *tx).await?;
+    }
+    tx.commit().await.map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -581,6 +604,18 @@ async fn knowledge_save(
     app: &App,
     input: wire::KnowledgeSaveRequest,
 ) -> Result<wire::KnowledgeDocument, String> {
+    save_document(app, input, false, None).await
+}
+
+async fn save_document(
+    app: &App,
+    mut input: wire::KnowledgeSaveRequest,
+    keep_links: bool,
+    image: Option<(knowledge_images::Image, String)>,
+) -> Result<wire::KnowledgeDocument, String> {
+    if let Some((image, alt)) = &image {
+        input.content.push_str(&image.markdown(alt));
+    }
     if input.title.trim().is_empty()
         || input.title.len() > 400
         || input.content.len() > 1_000_000
@@ -616,7 +651,14 @@ async fn knowledge_save(
             .ok_or("版本冲突：文档已被更新，请保留草稿并重新载入")?;
         row.get::<Vec<Uuid>, _>("related_ids")
     };
-    synchronize_knowledge_relationships(&mut tx, id, &previous, &related).await?;
+    if keep_links {
+        related = previous;
+    } else if previous != related {
+        synchronize_knowledge_relationships(&mut tx, id, &previous, &related).await?;
+    }
+    if let Some((image, _)) = image {
+        image.insert(&mut *tx).await?;
+    }
     if input.id.is_empty() {
         sqlx::query(
             "INSERT INTO knowledge_documents(id,title,content,related_ids) VALUES($1,$2,$3,$4)",
@@ -951,6 +993,24 @@ pub async fn file(
     )
         .into_response()
 }
+pub(crate) async fn upload_knowledge_image(
+    State(app): State<Shared>,
+    headers: HeaderMap,
+    body: std::result::Result<axum::body::Bytes, axum::extract::rejection::BytesRejection>,
+) -> Response {
+    let input = match decode::<wire::KnowledgeImageUploadRequest>(&app, &headers, body) {
+        Ok(input) => input,
+        Err(rejection) => return rejection.into(),
+    };
+    let image = match knowledge_images::Image::new(input.image) {
+        Ok(image) => image,
+        Err(error) => return issue(error),
+    };
+    match image.insert(&app.db).await {
+        Ok(id) => pb(StatusCode::OK, wire::KnowledgeImage { id: id.to_string() }),
+        Err(error) => issue(error),
+    }
+}
 pub async fn skill_text(app: &App, name: &str) -> Result<String, String> {
     let row=sqlx::query("SELECT * FROM runtime_skills WHERE (id=$1 OR lower(name)=lower($1)) AND deleted_at IS NULL ORDER BY builtin DESC,created_at LIMIT 1").bind(name).fetch_optional(&app.db).await.map_err(|e|e.to_string())?.ok_or("Skill不存在")?;
     let row = skill_resources::publish(&app.db, &app.root, &row.get::<String, _>("id")).await?;
@@ -960,11 +1020,22 @@ pub async fn skill_text(app: &App, name: &str) -> Result<String, String> {
         item.id, item.name, item.enabled, item.content_version, item.content, item.id
     ))
 }
-pub async fn invoke(
+#[cfg(test)]
+pub(crate) async fn invoke(
     app: &App,
     name: &str,
     args: &Value,
     cancel: &tokio_util::sync::CancellationToken,
+) -> Result<Value, String> {
+    invoke_tool(app, name, args, cancel, None).await
+}
+
+pub(crate) async fn invoke_tool(
+    app: &App,
+    name: &str,
+    args: &Value,
+    cancel: &tokio_util::sync::CancellationToken,
+    run: Option<Uuid>,
 ) -> Result<Value, String> {
     let string = |key: &str| args[key].as_str().unwrap_or("").to_string();
     match name {
@@ -1021,9 +1092,12 @@ pub async fn invoke(
         }
         "knowledge_search" => {
             let query = string("query");
-            let pattern = format!("%{query}%");
-            let rows=sqlx::query("SELECT id,title,left(content,5000) content,revision,related_ids,false trashed FROM knowledge_documents WHERE deleted_at IS NULL AND (title ILIKE $1 OR content ILIKE $1) ORDER BY updated_at DESC LIMIT 10").bind(pattern).fetch_all(&app.db).await.map_err(|e|e.to_string())?;
-            Ok(json!(rows.iter().map(|r|json!({"id":r.get::<Uuid,_>("id").to_string(),"title":r.get::<String,_>("title"),"content":r.get::<String,_>("content")})).collect::<Vec<_>>()))
+            let pattern = format!("%{}%", query.trim().chars().take(200).collect::<String>());
+            let rows=sqlx::query("SELECT id,title,left(content,360) content,revision,related_ids,false trashed FROM knowledge_documents WHERE deleted_at IS NULL AND (title ILIKE $1 OR content ILIKE $1) ORDER BY (title ILIKE $1) DESC,updated_at DESC LIMIT 10").bind(pattern).fetch_all(&app.db).await.map_err(|e|e.to_string())?;
+            Ok(json!(rows.iter().map(|row| {
+                let doc = document(row);
+                json!({"id":doc.id,"title":doc.title,"excerpt":doc.content,"revision":doc.revision,"related_ids":doc.related_ids})
+            }).collect::<Vec<_>>()))
         }
         "knowledge_read" => {
             let item = knowledge_read(app, &string("id")).await?;
@@ -1032,26 +1106,51 @@ pub async fn invoke(
             )
         }
         "knowledge_write" => {
-            let item = knowledge_save(
+            let image = if let Some(observation) = args["image_observation_id"].as_str() {
+                let run = run.ok_or("截图需要关联真实任务")?;
+                let alt = string("image_alt").chars().take(140).collect();
+                Some((
+                    knowledge_images::observation(app, run, observation).await?,
+                    alt,
+                ))
+            } else {
+                None
+            };
+            let related = args
+                .get("related_ids")
+                .map(|value| serde_json::from_value::<Vec<String>>(value.clone()))
+                .transpose()
+                .map_err(|_| "关联文档 ID 无效")?;
+            let keep_links = related.is_none();
+            let item = save_document(
                 app,
                 wire::KnowledgeSaveRequest {
                     id: string("id"),
                     title: string("title"),
                     content: string("content"),
                     expected_revision: args["revision"].as_u64().unwrap_or(0),
-                    related_ids: if let Some(ids) = args["related_ids"].as_array() {
-                        ids.iter()
-                            .filter_map(|v| v.as_str().map(str::to_string))
-                            .collect()
-                    } else if !string("id").is_empty() {
-                        knowledge_read(app, &string("id")).await?.related_ids
-                    } else {
-                        vec![]
-                    },
+                    related_ids: related.unwrap_or_default(),
+                },
+                keep_links,
+                image,
+            )
+            .await?;
+            Ok(
+                json!({"id":item.id,"revision":item.revision,"title":item.title,"related_ids":item.related_ids}),
+            )
+        }
+        "knowledge_link" => {
+            let item = knowledge_link(
+                app,
+                wire::KnowledgeLinkRequest {
+                    id: string("id"),
+                    target_id: string("target_id"),
+                    present: args["present"].as_bool().ok_or("请指定是否关联")?,
+                    expected_revision: args["revision"].as_u64().ok_or("请先读取文档版本")?,
                 },
             )
             .await?;
-            Ok(json!({"id":item.id,"revision":item.revision,"title":item.title}))
+            Ok(json!({"id":item.id,"revision":item.revision,"related_ids":item.related_ids}))
         }
         "workspace_list" => {
             let list = files(app, &string("path")).await?;
