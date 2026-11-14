@@ -1,0 +1,115 @@
+name: Beryllium signed EXE quit and reopen
+on:
+  push:
+    branches: [codex/beryllium-runtime-quit]
+    paths: [.github/workflows/windows-beryllium-runtime-quit.yml]
+permissions:
+  contents: read
+  actions: read
+env:
+  BERYLLIUM_SOURCE: 8cf8322cd697adf3f8fc2cf369126cecb55d8435
+jobs:
+  exact-exe:
+    runs-on: windows-2025
+    timeout-minutes: 42
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [fresh]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: ${{ env.BERYLLIUM_SOURCE }}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: beryllium-qualification
+      - name: Prepare acceptance tools
+        shell: bash
+        run: ./scripts/bootstrap.sh
+      - name: Prepare Windows Server WebView2 Runtime
+        shell: pwsh
+        run: |
+          $client = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          function Get-WebView2Version {
+            foreach ($parent in @('HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients', 'HKCU:\SOFTWARE\Microsoft\EdgeUpdate\Clients')) {
+              $version = Get-ItemPropertyValue (Join-Path $parent $client) pv -ErrorAction SilentlyContinue
+              if ($version -and $version -ne '0.0.0.0') { return $version }
+            }
+          }
+          $version = Get-WebView2Version
+          if (!$version) {
+            'Windows Server runner started without the WebView2 Runtime.'
+            $bootstrapper = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $bootstrapper
+            $setup = Start-Process $bootstrapper -ArgumentList '/silent', '/install' -Wait -PassThru
+            if ($setup.ExitCode -ne 0) { throw "WebView2 Runtime bootstrapper exit code: $($setup.ExitCode)" }
+            $version = Get-WebView2Version
+          }
+          if (!$version) { throw 'WebView2 Runtime registration is missing.' }
+          "Windows Server WebView2 Runtime: $version"
+      - name: Choose a fresh installation volume
+        shell: pwsh
+        run: |
+          $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -match '^[A-Z]:\\$' } | Sort-Object Free -Descending
+          $drives | ForEach-Object { 'Free on {0}: {1:N1} GiB' -f $_.Root, ($_.Free / 1GB) }
+          $os = Get-CimInstance Win32_OperatingSystem
+          '{0} build {1}, RAM {2:N1} GiB' -f $os.Caption, $os.BuildNumber, ($os.TotalVisibleMemorySize / 1MB)
+          $root = Join-Path $drives[0].Root "AImanity-QA-$env:GITHUB_RUN_ID"
+          $profile = Join-Path $root 'profile'
+          New-Item -ItemType Directory -Path $profile -Force | Out-Null
+          Add-Type -Name ShellFolders -Namespace Acceptance -MemberDefinition @'
+          [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, ExactSpelling = true)]
+          public static extern int SHSetKnownFolderPath(ref System.Guid folder, uint flags, System.IntPtr token, string path);
+          '@
+          $local = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'dev.aiphone.client/client-updates'
+          if (Test-Path $local) { throw 'The disposable runner already has an AImanity update cache.' }
+          "AIMANITY_QA_UPDATE_CACHE=$local" >> $env:GITHUB_ENV
+          $roaming = [Guid]'3eb685db-65f9-4cf6-a03a-e3ef65729f3d'
+          $redirect = [Acceptance.ShellFolders]::SHSetKnownFolderPath([ref] $roaming, 0, [IntPtr]::Zero, $profile)
+          if ($redirect -ne 0) { throw "Cannot redirect the runner's RoamingAppData: $redirect" }
+          if ([Environment]::GetFolderPath('ApplicationData') -ne $profile) {
+            throw 'The isolated Windows profile did not become the RoamingAppData known folder.'
+          }
+          "AIMANITY_QA_ROOT=$root" >> $env:GITHUB_ENV
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          run-id: 43613367314
+          github-token: ${{ github.token }}
+          artifact-ids: 14122577454
+          merge-multiple: true
+          path: ${{ env.AIMANITY_QA_ROOT }}
+      - name: Verify the QA installer and exact source receipt
+        shell: pwsh
+        run: |
+          $file = Join-Path $env:AIMANITY_QA_ROOT 'AImanity-0.0.2-windows-x64-setup.exe'
+          $receipt = Get-Content "$file.manifest.json" -Raw | ConvertFrom-Json
+          if ($receipt.source_commit -ne $env:BERYLLIUM_SOURCE -or !$receipt.authenticode.cryptographically_verified) { throw 'Unexpected Beryllium build receipt' }
+          if ((Get-FileHash -Path $file -Algorithm SHA256).Hash -ne $receipt.sha256) { throw 'Beryllium EXE differs from the signed package receipt' }
+      - name: Download and verify the published signed installer
+        if: matrix.scenario == 'upgrade'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          name='AImanity-0.0.1-windows-x64-setup.exe'
+          identity='ee631f27c3e82b2a3fac15545872f97c9eeb61297f8f3f0bcf4e66d96ab13a5c'
+          asset=$(gh api "repos/$repo/releases/tags/v0.0.1" --jq ".assets[] | select(.name == \"$name\" and .state == \"uploaded\" and .size == 2110635192 and .digest == \"sha256:$identity\") | .id")
+          [[ "$asset" =~ ^[0-9]+$ ]]
+          dir=$(cygpath -u "$AIMANITY_QA_ROOT")
+          gh api "repos/$repo/releases/assets/$asset" -H 'Accept: application/octet-stream' > "$dir/$name"
+          cd "$dir"
+          printf '%s  %s\n' "$identity" "$name" | sha256sum -c -
+      - name: Install and drive the real first-run desktop client
+        env:
+          AIMANITY_QA_ANDROID_AUDIO: '1'
+          AIMANITY_QA_BERYLLIUM_FRESH: ${{ matrix.scenario == 'fresh' && '1' || '0' }}
+          AIMANITY_QA_BERYLLIUM_UPGRADE: ${{ matrix.scenario == 'upgrade' && '1' || '0' }}
+        shell: pwsh
+        run: |
+          Copy-Item beryllium-qualification/scripts/qualify-beryllium-windows.ts scripts/qualify-beryllium-windows.ts
+          ./.tools/bin/bun.exe scripts/qualify-beryllium-windows.ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

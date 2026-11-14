@@ -8,8 +8,8 @@ $Root = (Resolve-Path $AcceptanceRoot).Path
 $Install = Join-Path $Root 'installed'
 $Program = Join-Path $Install 'ai-phone-client.exe'
 $Profile = Join-Path $Root 'profile'
-$Home = Join-Path $Profile 'dev.aiphone.client\host'
-$Owner = Join-Path $Home 'user\data\android\native\session.pb'
+$InstallHome = Join-Path $Profile 'dev.aiphone.client\host'
+$Owner = Join-Path $InstallHome 'user\data\android\native\session.pb'
 $Ports = @(17860, 17861, 15037, 5565)
 $Client = Get-Process -Id $ClientPid
 if ($Client.Path -ne $Program -or (Split-Path $Root -Leaf) -ne "AImanity-QA-$env:GITHUB_RUN_ID") {
@@ -46,7 +46,7 @@ do {
     if ((Get-Listeners).Count -eq $Ports.Count -and (Test-Path $Owner) -and $Reopened.MainWindowTitle -eq 'AImanity') {
         $Response = & curl.exe --noproxy '*' --silent --max-time 2 --head 'http://127.0.0.1:17860/phone'
         if (($Response -match '^HTTP/\S+ 200') -and ($Response -match '^content-type: text/html')) {
-            $Adb = Get-ChildItem -Path (Join-Path $Home 'components\android\*\sdk\platform-tools\adb.exe') | Select-Object -First 1
+            $Adb = Get-ChildItem -Path (Join-Path $InstallHome 'components\android\*\sdk\platform-tools\adb.exe') | Select-Object -First 1
             $Uid = & $Adb.FullName '-P' '15037' '-s' '127.0.0.1:5565' shell 'id -u'
             if ($LASTEXITCODE -eq 0 -and $Uid.Trim() -eq '0') {
                 Write-Host "Reopened Windows workbench and rooted Android in $($timer.ElapsedMilliseconds) ms (PID $($Reopened.Id))"
