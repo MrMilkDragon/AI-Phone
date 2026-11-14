@@ -12,7 +12,7 @@ $Home = Join-Path $Profile 'dev.aiphone.client\host'
 $Owner = Join-Path $Home 'user\data\android\native\session.pb'
 $Ports = @(17860, 17861, 15037, 5565)
 $Client = Get-Process -Id $ClientPid
-if ($Client.Path -ne $Program -or [IO.Path]::GetFullPath($Profile) -eq [IO.Path]::GetFullPath($env:APPDATA)) {
+if ($Client.Path -ne $Program -or (Split-Path $Root -Leaf) -ne "AImanity-QA-$env:GITHUB_RUN_ID") {
     throw 'Use the installer acceptance process and explicit disposable profile.'
 }
 
