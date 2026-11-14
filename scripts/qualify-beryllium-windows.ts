@@ -390,6 +390,8 @@ try {
     const launcher = android("shell", "cmd", "package", "resolve-activity", "--brief", "--user", "0", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME").toString();
     match(launcher, /dev\.aiphone\.home\/\.HomeActivity/);
     console.log("Beryllium phone default packages and paged Home verified");
+    const quit = Bun.spawnSync(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "beryllium-qualification/scripts/qualify-beryllium-windows-quit.ps1", "-AcceptanceRoot", root, "-ClientPid", String(app.pid)], {env, stdout: "inherit", stderr: "inherit", timeout: 600_000});
+    equal(quit.exitCode, 0, "release both device processes on quit and resume on reopen");
   }
 
   if (process.env.AIMANITY_QA_BERYLLIUM_UPGRADE === "1") {
