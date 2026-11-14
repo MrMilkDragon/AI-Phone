@@ -1333,8 +1333,8 @@
     },
     {
       "path": "config/release-policy.json",
-      "size": 298,
-      "sha256": "6e378fa2a2a9b4237e759f41d90d7b5e503439506a564e8add86806cc3b9e70d"
+      "size": 357,
+      "sha256": "9a1b3674b7638e5360bb112d221f9e0bfdb9bd3c5f8131e5b74941109a94bdc1"
     },
     {
       "path": "config/rust-runtime-notices.json",
@@ -2598,8 +2598,8 @@
     },
     {
       "path": "crates/host-runtime/src/manifest.rs",
-      "size": 7453,
-      "sha256": "3d4682683e3c9da6771fd94fe8c824dde68aa8577ac82db3d5358869b5768ea8"
+      "size": 7232,
+      "sha256": "160b75d39e3be48f78d05e66ce6cf5d0393ae198750100a84d2b70e9b7c503db"
     },
     {
       "path": "crates/host-runtime/src/native_ipc.rs",

@@ -8,12 +8,11 @@ pub(crate) const MAX_FILES: usize = 20_000;
 pub(crate) const MAX_FILE: u64 = 384 * 1024 * 1024;
 pub(crate) const MAX_TOTAL: u64 = 1024 * 1024 * 1024;
 pub(crate) const MAX_MANIFEST: u64 = 4 * 1024 * 1024;
-pub(crate) const COMPONENTS: [(&str, &str); 5] = [
+pub(crate) const COMPONENTS: [(&str, &str); 4] = [
     ("web", "runtime/manifest.json"),
     ("native-services", "runtime/services/manifest.json"),
     ("phone-apps", "runtime/phone-apps/manifest.json"),
     ("container-host", "runtime/container-host/manifest.json"),
-    ("guest-apps", "runtime/guest-apps/manifest.json"),
 ];
 
 #[derive(Debug, Deserialize)]
@@ -87,15 +86,7 @@ fn runtime_name(value: &str, enabled: bool) -> bool {
         && parts.next() == Some("runtime")
         && matches!(
             parts.next(),
-            Some(
-                "web"
-                    | "bin"
-                    | "manifest.json"
-                    | "services"
-                    | "phone-apps"
-                    | "container-host"
-                    | "guest-apps"
-            )
+            Some("web" | "bin" | "manifest.json" | "services" | "phone-apps" | "container-host")
         )
 }
 
