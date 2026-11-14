@@ -1793,8 +1793,8 @@
     },
     {
       "path": "crates/assistant/src/completion_audit.rs",
-      "size": 52646,
-      "sha256": "2e0cf350ab42d5679cd82260d80b4c5ecb0355a74f2cf080ad5bd850eed6b634"
+      "size": 49091,
+      "sha256": "d8652c2d75bd65c4f5a17e2fb468ce26bd91843e55ffafe4c29946b30c10db1b"
     },
     {
       "path": "crates/assistant/src/database/bootstrap.rs",
